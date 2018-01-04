@@ -180,8 +180,9 @@ public class FlowUtils {
         return gb;
     }
 
-    static boolean addGroup(IOFSwitch sw, String groupType, String bucketList){
-        OFGroupType gType;
+    static boolean addGroup(IOFSwitch sw, String groupType, List<String> actionBuckets){
+        OFGroupType gType = null;
+        List<OFBucket> buckets = new ArrayList<OFBucket>();
         if(groupType.toLowerCase().equals("all")){
             gType = OFGroupType.ALL;
         }else if(groupType.toLowerCase().equals("select")){
@@ -193,12 +194,27 @@ public class FlowUtils {
         }else{
             log.error("tank# unsupport group type");
         }
-       //sw.getOFFactory().buildBucket().set
 
+        for(String actionBucket : actionBuckets){
+            OFBucket ofBucket = null;
+            ofBucket = sw.getOFFactory().buildBucket().setActions(buildActions(sw, actionBucket)).build();
+            buckets.add(ofBucket);
+        }
+        if(gType != null){
+            sw.write(makeGroupFlow(sw,gType,buckets).build());
+            return true;
+        }else{
+            return false;
+        }
+    }
 
+    static boolean addGroup(IOFSwitch sw, String groupType, List<String> actionBuckets, String watchGroup,
+            String watchPort){
 
         return true;
     }
+
+
 
    @SuppressWarnings("uncheckd")
    static OFFlowMod.Builder makeDel_gen(OFFlowMod.Builder fm, IOFSwitch sw, String fieldMatch, String otherMatch){
