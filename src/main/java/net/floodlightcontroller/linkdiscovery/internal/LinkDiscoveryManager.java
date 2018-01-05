@@ -665,7 +665,7 @@ IFloodlightModule, IInfoProvider {
 		if (lldp.getPortId() == null || lldp.getPortId().getLength() != 3) {
 			return Command.STOP;
 		}
-
+		/* gzq: myId as a identifier of the controller used to check if the received lldp is sent by my controller */
 		long myId = ByteBuffer.wrap(controllerTLV.getValue()).getLong();
 		long otherId = 0;
 		boolean myLLDP = false;

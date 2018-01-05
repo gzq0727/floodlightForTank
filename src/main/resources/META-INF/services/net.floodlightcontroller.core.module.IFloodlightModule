@@ -30,6 +30,9 @@ net.floodlightcontroller.statistics.StatisticsCollector
 net.floodlightcontroller.routing.RoutingManager
 net.floodlightcontroller.cpanalyzer.CPAnalyzer
 net.floodlightcontroller.hasupport.HAController
+tank.sdnos.monitor.SwitchStatisticsCollector
 tank.sdnos.test.Test1
 tank.sdnos.monitor.BandwidthMonitor
+tank.sdnos.monitor.PacketLossMonitor
 tank.sdnos.monitor.DelayMonitor
+

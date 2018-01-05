@@ -68,6 +68,10 @@ public class StatisticsCollector implements IFloodlightModule, IStatisticsServic
 	 * @author Ryan Izard, ryan.izard@bigswitch.com, rizard@g.clemson.edu
 	 *
 	 */
+	public static int getPortStatusInterval(){
+	    return portStatsInterval;
+	}
+
 	protected class PortStatsCollector implements Runnable {
 
 		@Override

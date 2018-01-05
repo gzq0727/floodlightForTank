@@ -6,7 +6,11 @@ import net.floodlightcontroller.core.module.IFloodlightService;
 import net.floodlightcontroller.core.types.NodePortTuple;
 import net.floodlightcontroller.statistics.SwitchPortBandwidth;
 
-public interface IMonitorBandwidthService extends IFloodlightService {
-    //带宽使用情况
+public interface IBandwidthMonitor extends IFloodlightService{
+
+    public Map<NodePortTuple, SwitchPortBandwidth> getBandwidth();
+
+    public SwitchPortBandwidth getPortBandwidth(NodePortTuple nodePortTuple);
+
     public Map<NodePortTuple,SwitchPortBandwidth> getBandwidthMap();
 }
