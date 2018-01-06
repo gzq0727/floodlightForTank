@@ -4,11 +4,13 @@ import java.lang.Thread.State;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import org.projectfloodlight.openflow.protocol.OFFlowStatsReply;
 import org.projectfloodlight.openflow.protocol.OFStatsReply;
 import org.projectfloodlight.openflow.protocol.OFStatsRequest;
 import org.projectfloodlight.openflow.protocol.OFStatsType;
@@ -30,6 +32,7 @@ import net.floodlightcontroller.core.module.FloodlightModuleContext;
 import net.floodlightcontroller.core.module.FloodlightModuleException;
 import net.floodlightcontroller.core.module.IFloodlightModule;
 import net.floodlightcontroller.core.module.IFloodlightService;
+import net.floodlightcontroller.statistics.IStatisticsService;
 import net.floodlightcontroller.threadpool.IThreadPoolService;
 
 public class SwitchStatisticsCollector implements IFloodlightModule, ISwitchStatisticsCollector {
@@ -37,9 +40,11 @@ public class SwitchStatisticsCollector implements IFloodlightModule, ISwitchStat
 
     private static IOFSwitchService switchService;
 
-    /*will set the value euqals the collectionIntervalPortStatsSecond
-    defined in floodlightdefault.properties */
-    private static int portStatsInterval = 5;
+    /*
+     * will set the value euqals the collectionIntervalPortStatsSecond defined
+     * in floodlightdefault.properties
+     */
+    private static int replyTimeout = 5;
 
     /**
      * Get statistics from a switch.
@@ -60,8 +65,7 @@ public class SwitchStatisticsCollector implements IFloodlightModule, ISwitchStat
     @Override
     public Map<Class<? extends IFloodlightService>, IFloodlightService> getServiceImpls() {
         // TODO Auto-generated method stub
-        Map<Class<? extends IFloodlightService>, IFloodlightService> l =
-                new HashMap<Class<? extends IFloodlightService>, IFloodlightService>();
+        Map<Class<? extends IFloodlightService>, IFloodlightService> l = new HashMap<Class<? extends IFloodlightService>, IFloodlightService>();
         l.put(ISwitchStatisticsCollector.class, this);
         return l;
     }
@@ -72,6 +76,7 @@ public class SwitchStatisticsCollector implements IFloodlightModule, ISwitchStat
         Collection<Class<? extends IFloodlightService>> l = new ArrayList<Class<? extends IFloodlightService>>();
         l.add(IOFSwitchService.class);
         l.add(IThreadPoolService.class);
+        l.add(IStatisticsService.class);
         return l;
     }
 
@@ -79,29 +84,30 @@ public class SwitchStatisticsCollector implements IFloodlightModule, ISwitchStat
     public void init(FloodlightModuleContext context) throws FloodlightModuleException {
         // TODO Auto-generated method stub
         switchService = context.getServiceImpl(IOFSwitchService.class);
-        Map<String, String> config = context.getConfigParams(this);
+        Map<String, String> config = context
+                .getConfigParams(net.floodlightcontroller.statistics.StatisticsCollector.class);
 
-      if (config.containsKey("collectionIntervalPortStatsSecond")) {
+        if (config.containsKey("collectionIntervalPortStatsSecond")) {
             try {
-                portStatsInterval   = Integer.parseInt(config.get("collectionIntervalPortStatsSecond").trim());
+                replyTimeout = Integer.parseInt(config.get("collectionIntervalPortStatsSecond").trim());
             } catch (Exception e) {
-                log.error("Could not parse collectionIntervalPortStatsSecond'. Using default of {}", portStatsInterval);
+                log.error(
+                        "tank# Could not parse collectionIntervalPortStatsSecond parameter in net.floodlightcontroller"
+                                + ".statistics.StatisticsCollector. replyTimeout will be set to default {}",
+                        replyTimeout);
             }
         }
-        log.info("bandwidth statistics collection interval set to {}s", portStatsInterval);
+        log.info("tank# switch statistics reply timeout set to {}s", replyTimeout);
     }
 
     @Override
     public void startUp(FloodlightModuleContext context) throws FloodlightModuleException {
         // TODO Auto-generated method stub
         log.info("SwitchStatisticsCollector is in service");
-
     }
 
-
     /**
-     * Single thread for collecting switch statistics and
-     * containing the reply.
+     * Single thread for collecting switch statistics and containing the reply.
      */
     private class GetStatisticsThread extends Thread {
         private List<OFStatsReply> statsReply;
@@ -127,7 +133,6 @@ public class SwitchStatisticsCollector implements IFloodlightModule, ISwitchStat
             statsReply = getSwitchStatistics(switchId, statType);
         }
     }
-
 
     @SuppressWarnings("unchecked")
     @Override
@@ -219,7 +224,7 @@ public class SwitchStatisticsCollector implements IFloodlightModule, ISwitchStat
             try {
                 if (req != null) {
                     future = sw.writeStatsRequest(req);
-                    values = (List<OFStatsReply>) future.get(portStatsInterval / 2, TimeUnit.SECONDS);
+                    values = (List<OFStatsReply>) future.get(replyTimeout / 2, TimeUnit.SECONDS);
                 }
             } catch (Exception e) {
                 log.error("Failure retrieving statistics from switch {}. {}", sw, e);
@@ -254,7 +259,7 @@ public class SwitchStatisticsCollector implements IFloodlightModule, ISwitchStat
          * switch has not replied yet and therefore we won't add the switch's
          * stats to the reply.
          */
-        for (int iSleepCycles = 0; iSleepCycles < portStatsInterval; iSleepCycles++) {
+        for (int iSleepCycles = 0; iSleepCycles < replyTimeout; iSleepCycles++) {
             for (GetStatisticsThread curThread : activeThreads) {
                 if (curThread.getState() == State.TERMINATED) {
                     model.put(curThread.getSwitchId(), curThread.getStatisticsReply());

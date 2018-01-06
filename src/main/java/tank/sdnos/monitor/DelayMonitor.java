@@ -25,6 +25,11 @@ import net.floodlightcontroller.threadpool.IThreadPoolService;
 public class DelayMonitor implements IFloodlightModule, IDelayMonitor {
     private static final Logger log = LoggerFactory.getLogger(DelayMonitor.class);
     private static ILinkDiscoveryService linkDiscoveryService;
+    private static IThreadPoolService threadPoolService;
+
+    private static volatile Map<Link, LatencyLet> linksDelay = new HashMap<Link, LatencyLet>();
+    private static int statsUpdateInterval = 5;
+    private static boolean isEnabled = true;
 
     /*
      * The latency data is obtained through the linkDiscoveryService implemented
@@ -42,8 +47,7 @@ public class DelayMonitor implements IFloodlightModule, IDelayMonitor {
 
     @Override
     public Map<Class<? extends IFloodlightService>, IFloodlightService> getServiceImpls() {
-        Map<Class<? extends IFloodlightService>, IFloodlightService> l =
-                new HashMap<Class<? extends IFloodlightService>, IFloodlightService>();
+        Map<Class<? extends IFloodlightService>, IFloodlightService> l = new HashMap<Class<? extends IFloodlightService>, IFloodlightService>();
         l.put(IDelayMonitor.class, this);
         return l;
     }
@@ -61,20 +65,109 @@ public class DelayMonitor implements IFloodlightModule, IDelayMonitor {
     @Override
     public void init(FloodlightModuleContext context) throws FloodlightModuleException {
         linkDiscoveryService = context.getServiceImpl(ILinkDiscoveryService.class);
+        threadPoolService = context.getServiceImpl(IThreadPoolService.class);
+        Map<String, String> config = context
+                .getConfigParams(net.floodlightcontroller.statistics.StatisticsCollector.class);
+        if (config.containsKey("collectionIntervalPortStatsSecond")) {
+            try {
+                statsUpdateInterval = Integer.parseInt(config.get("collectionIntervalPortStatsSecond").trim());
+            } catch (Exception e) {
+                log.error(
+                        "tank# Could not parse collectionIntervalPortStatsSecond parameter in net.floodlightcontroller"
+                                + ".statistics.StatisticsCollector. Delay stats update interval will be set to default {}",
+                        statsUpdateInterval);
+            }
+        }
+        log.info("tank# delay statistics collection interval set to {}s", statsUpdateInterval);
+
+        config = context.getConfigParams(this);
+        if (config.containsKey("enable")) {
+            try {
+                isEnabled = Boolean.parseBoolean(config.get("enable").trim());
+            } catch (Exception e) {
+                log.error("Could not parse '{}'. Using default of {}", "enable", isEnabled);
+            }
+        }
+        log.info("tank# delay monitor {}", isEnabled ? "enabled" : "disabled");
     }
 
     @Override
     public void startUp(FloodlightModuleContext context) throws FloodlightModuleException {
-        try {
-            log.info("tank# delay monitor start");
-            while (true) {
-                TimeUnit.SECONDS.sleep(5);
-                testFunc();
-            }
-        } catch (InterruptedException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+        if (isEnabled) {
+            startDelayMonitor();
+            log.info("tank# DelayMonitor is in service");
         }
+    }
+
+    public void startDelayMonitor() {
+        threadPoolService.getScheduledExecutor().scheduleAtFixedRate(new DelayCollectorThread(), statsUpdateInterval,
+                statsUpdateInterval, TimeUnit.SECONDS);
+    }
+
+    private class DelayCollectorThread implements Runnable {
+
+        @Override
+        public void run() {
+            // TODO Auto-generated method stub
+            Map<Link, LinkInfo> linkInfo = linkDiscoveryService.getLinks();
+            Iterator<Entry<Link, LinkInfo>> iter = linkInfo.entrySet().iterator();
+            while (iter.hasNext()) {
+                Entry<Link, LinkInfo> link = iter.next();
+                LatencyLet latencyLet = new LatencyLet();
+                latencyLet.setLatency(link.getKey().getLatency());
+                latencyLet.setCurrentLatency(link.getValue().getCurrentLatency());
+                if (link.getValue().getLatencyHistoryAverageForTank() != null) {
+                    latencyLet.setAverageLatency(link.getValue().getLatencyHistoryAverageForTank());
+                } else {
+                    latencyLet.setAverageLatency(null);
+                }
+                linksDelay.put(link.getKey(), latencyLet);
+            }
+            testDelayMonitor();
+        }
+    }
+
+    private void testDelayMonitor() {
+        String srcSw = "00:00:00:00:00:00:00:01";
+        String dstSw = "00:00:00:00:00:00:00:02";
+        String srcPort = "2";
+        String dstPort = "2";
+        log.info("tank# latency: {} ", getLatency(srcSw, srcPort, dstSw, dstPort).getValue());
+        log.info("tank# currentLatency: {}", getCurrentLatency(srcSw, srcPort, dstSw, dstPort).getValue());
+        if (getAverageLatency(srcSw, srcPort, dstSw, dstPort) != null) {
+            log.info("average latency: {}", getAverageLatency(srcSw, srcPort, dstSw, dstPort).getValue());
+        }
+    }
+
+    public static class LatencyLet {
+        private U64 latency;
+        private U64 currentLatency;
+        private U64 averageLatency;
+
+        public U64 getLatency() {
+            return latency;
+        }
+
+        public void setLatency(U64 latency) {
+            this.latency = latency;
+        }
+
+        public U64 getCurrentLatency() {
+            return currentLatency;
+        }
+
+        public void setCurrentLatency(U64 currentLatency) {
+            this.currentLatency = currentLatency;
+        }
+
+        public U64 getAverageLatency() {
+            return averageLatency;
+        }
+
+        public void setAverageLatency(U64 averageLatency) {
+            this.averageLatency = averageLatency;
+        }
+
     }
 
     /*
@@ -85,14 +178,13 @@ public class DelayMonitor implements IFloodlightModule, IDelayMonitor {
      */
     @Override
     public U64 getLatency(String srcSw, String srcPort, String dstSw, String dstPort) {
-        Map<Link, LinkInfo> linkInfos = linkDiscoveryService.getLinks();
-        Iterator<Entry<Link, LinkInfo>> iter = linkInfos.entrySet().iterator();
+        Iterator<Entry<Link, LatencyLet>> iter = linksDelay.entrySet().iterator();
         while (iter.hasNext()) {
-            Entry<Link, LinkInfo> link = iter.next();
+            Entry<Link, LatencyLet> link = iter.next();
             if (srcSw.equals(link.getKey().getSrc().toString()) && srcPort.equals(link.getKey().getSrcPort().toString())
                     && dstSw.equals(link.getKey().getDst().toString())
                     && dstPort.equals(link.getKey().getDstPort().toString())) {
-                return link.getKey().getLatency();
+                return link.getValue().getLatency();
             }
         }
         log.error("tank# can not find thd link: {}",
@@ -102,8 +194,7 @@ public class DelayMonitor implements IFloodlightModule, IDelayMonitor {
 
     @Override
     public U64 getLatency(Link link) {
-        Map<Link, LinkInfo> linkInfos = linkDiscoveryService.getLinks();
-        for (Link mlink : linkInfos.keySet()) {
+        for (Link mlink : linksDelay.keySet()) {
             if (mlink.equals(link)) {
                 return mlink.getLatency();
             }
@@ -116,10 +207,9 @@ public class DelayMonitor implements IFloodlightModule, IDelayMonitor {
     /* return the link current latency = the last latency measured */
     @Override
     public U64 getCurrentLatency(String srcSw, String srcPort, String dstSw, String dstPort) {
-        Map<Link, LinkInfo> linkInfos = linkDiscoveryService.getLinks();
-        Iterator<Entry<Link, LinkInfo>> iter = linkInfos.entrySet().iterator();
+        Iterator<Entry<Link, LatencyLet>> iter = linksDelay.entrySet().iterator();
         while (iter.hasNext()) {
-            Entry<Link, LinkInfo> link = iter.next();
+            Entry<Link, LatencyLet> link = iter.next();
             if (srcSw.equals(link.getKey().getSrc().toString()) && srcPort.equals(link.getKey().getSrcPort().toString())
                     && dstSw.equals(link.getKey().getDst().toString())
                     && dstPort.equals(link.getKey().getDstPort().toString())) {
@@ -133,10 +223,9 @@ public class DelayMonitor implements IFloodlightModule, IDelayMonitor {
 
     @Override
     public U64 getCurrentLatency(Link link) {
-        Map<Link, LinkInfo> linkInfos = linkDiscoveryService.getLinks();
-        for (Link mlink : linkInfos.keySet()) {
+        for (Link mlink : linksDelay.keySet()) {
             if (mlink.equals(link)) {
-                return linkInfos.get(mlink).getCurrentLatency();
+                return linksDelay.get(mlink).getCurrentLatency();
             }
         }
         log.error("tank# can not find thd link: {}", "srcSw:" + link.getSrc() + " srcPort:" + link.getSrcPort()
@@ -151,17 +240,16 @@ public class DelayMonitor implements IFloodlightModule, IDelayMonitor {
      */
     @Override
     public U64 getAverageLatency(String srcSw, String srcPort, String dstSw, String dstPort) {
-        Map<Link, LinkInfo> linkInfos = linkDiscoveryService.getLinks();
-        Iterator<Entry<Link, LinkInfo>> iter = linkInfos.entrySet().iterator();
+        Iterator<Entry<Link, LatencyLet>> iter = linksDelay.entrySet().iterator();
         while (iter.hasNext()) {
-            Entry<Link, LinkInfo> link = iter.next();
+            Entry<Link, LatencyLet> link = iter.next();
             if (srcSw.equals(link.getKey().getSrc().toString()) && srcPort.equals(link.getKey().getSrcPort().toString())
                     && dstSw.equals(link.getKey().getDst().toString())
                     && dstPort.equals(link.getKey().getDstPort().toString())) {
-                if (link.getValue().getLatencyHistoryAverageForTank() == null) {
+                if (link.getValue().getAverageLatency() == null) {
                     log.info("tank# wait the latencyHistoryWindow to bu full, return null now");
                 }
-                return link.getValue().getLatencyHistoryAverageForTank();
+                return link.getValue().getAverageLatency();
             }
         }
         log.error("tank# can not find thd link: {}",
@@ -171,10 +259,9 @@ public class DelayMonitor implements IFloodlightModule, IDelayMonitor {
 
     @Override
     public U64 getAverageLatency(Link link) {
-        Map<Link, LinkInfo> linkInfos = linkDiscoveryService.getLinks();
-        for (Link mlink : linkInfos.keySet()) {
+        for (Link mlink : linksDelay.keySet()) {
             if (mlink.equals(link)) {
-                return linkInfos.get(mlink).getLatencyHistoryAverageForTank();
+                return linksDelay.get(mlink).getAverageLatency();
             }
         }
         log.error("tank# can not find thd link: {}", "srcSw:" + link.getSrc() + " srcPort:" + link.getSrcPort()
@@ -182,38 +269,7 @@ public class DelayMonitor implements IFloodlightModule, IDelayMonitor {
         return null;
     }
 
-    public void testFunc() {
-        Map<Link, LinkInfo> linkInfo = linkDiscoveryService.getLinks();
-        Iterator<Entry<Link, LinkInfo>> iter = linkInfo.entrySet().iterator();
-        if (!iter.hasNext()) {
-            log.info("tank# link is null");
-        }
-        String srcSw = "00:00:00:00:00:00:00:01";
-        String dstSw = "00:00:00:00:00:00:00:02";
-        String srcPort = "2";
-        String dstPort = "2";
-        System.out.println("latency: " + getLatency(srcSw, srcPort, dstSw, dstPort).getValue());
-        System.out.println("currentLatency: " + getCurrentLatency(srcSw, srcPort, dstSw, dstPort).getValue());
-        if (getAverageLatency(srcSw, srcPort, dstSw, dstPort) != null) {
-            System.out.println("average latency: " + getAverageLatency(srcSw, srcPort, dstSw, dstPort).getValue());
-        }
-
-        // while(iter.hasNext()){
-        // Entry<Link, LinkInfo> node = iter.next();
-        // System.out.println("srcSw:
-        // "+node.getKey().getSrc().toString()+",srcPort：
-        // "+node.getKey().getSrcPort());
-        // System.out.println("dstSw:
-        // "+node.getKey().getDst().toString()+",dstPort：
-        // "+node.getKey().getDstPort());
-        // System.out.println("linkDelay:
-        // "+node.getKey().getLatency().getValue());
-        // System.out.println("currentDelay：
-        // "+node.getValue().getCurrentLatency().getValue());
-        // if(node.getValue().getLatencyHistoryAverageForTank() != null){
-        // System.out.println("averageDelay: " +
-        // node.getValue().getLatencyHistoryAverageForTank().getValue());
-        // }
-        // }
+    public Map<Link, LatencyLet> getAllLatency() {
+        return linksDelay;
     }
 }

@@ -30,14 +30,19 @@ import net.floodlightcontroller.core.types.NodePortTuple;
  */
 public class BandwidthMonitor implements IFloodlightModule, IBandwidthMonitor {
     private static final Logger log = LoggerFactory.getLogger(BandwidthMonitor.class);
-    protected static IFloodlightProviderService floodlightProvider;
-    protected static IStatisticsService statisticsService;
+    private static IStatisticsService statisticsService;
     // Floodllight实现的线程池，当然我们也可以使用Java自带的，但推荐使用这个
     private static IThreadPoolService threadPoolService;
     // Future类，不明白的可以百度 Java现成future,其实C++11也有这个玩意了
-    private static ScheduledFuture<?> portBandwidthCollector;
+    private static ScheduledFuture<?> bandwidthMonitor;
     private static Map<NodePortTuple, SwitchPortBandwidth> bandwidth;
+
+    /*
+     * equals to net.floodlightcontroller.statistics.StatisticsCollector
+     * .collectionIntervalPortStatsSeconds
+     */
     private static int statsUpdateInterval = 5;
+    private static boolean isEnabled = true;
 
     // 告诉FL，我们添加了一个模块，提供了IMonitorBandwidthService
     @Override
@@ -59,7 +64,6 @@ public class BandwidthMonitor implements IFloodlightModule, IBandwidthMonitor {
     @Override
     public Collection<Class<? extends IFloodlightService>> getModuleDependencies() {
         Collection<Class<? extends IFloodlightService>> l = new ArrayList<Class<? extends IFloodlightService>>();
-        l.add(IFloodlightProviderService.class);
         l.add(IStatisticsService.class);
         l.add(IThreadPoolService.class);
         return l;
@@ -68,53 +72,67 @@ public class BandwidthMonitor implements IFloodlightModule, IBandwidthMonitor {
     // 初始化这些service,个人理解这个要早于startUp()方法的执行，验证很简单，在两个方法里打印当前时间就可以。
     @Override
     public void init(FloodlightModuleContext context) throws FloodlightModuleException {
-        floodlightProvider = context.getServiceImpl(IFloodlightProviderService.class);
         statisticsService = context.getServiceImpl(IStatisticsService.class);
         threadPoolService = context.getServiceImpl(IThreadPoolService.class);
 
-        Map<String, String> config = context.getConfigParams(this);
-
+        Map<String, String> config = context
+                .getConfigParams(net.floodlightcontroller.statistics.StatisticsCollector.class);
         if (config.containsKey("collectionIntervalPortStatsSecond")) {
             try {
                 statsUpdateInterval = Integer.parseInt(config.get("collectionIntervalPortStatsSecond").trim());
             } catch (Exception e) {
-                log.error("tank# Could not parse collectionIntervalPortStatsSecond'. Using default of {}",
+                log.error(
+                        "tank# Could not parse collectionIntervalPortStatsSecond parameter in net.floodlightcontroller"
+                                + ".statistics.StatisticsCollector. Bandwidth stats update interval will be set to default {}",
                         statsUpdateInterval);
             }
         }
         log.info("tank# bandwidth statistics collection interval set to {}s", statsUpdateInterval);
+
+        config = context.getConfigParams(this);
+        if (config.containsKey("enable")) {
+            try {
+                isEnabled = Boolean.parseBoolean(config.get("enable").trim());
+            } catch (Exception e) {
+                log.error("Could not parse '{}'. Using default of {}", "enable", isEnabled);
+            }
+        }
+        log.info("tank# bandwidth monitor {}", isEnabled ? "enabled" : "disabled");
     }
 
     @Override
     public void startUp(FloodlightModuleContext context) throws FloodlightModuleException {
-        startCollectBandwidth();
+        if (isEnabled) {
+            startBandwidthMonitor();
+            log.info("tank# BandwidthMonitor is in service");
+        }
     }
 
     // 自定义的开始收集数据的方法，使用了线程池，定周期的执行
-    private synchronized void startCollectBandwidth() {
-        portBandwidthCollector = threadPoolService.getScheduledExecutor().scheduleAtFixedRate(new GetBandwidthThread(),
+    private synchronized void startBandwidthMonitor() {
+        bandwidthMonitor = threadPoolService.getScheduledExecutor().scheduleAtFixedRate(new BandwidthUpdateThread(),
                 statsUpdateInterval, statsUpdateInterval, TimeUnit.SECONDS);
-        log.info("tank# bandwidth collection thread(s) started");
+        log.info("tank# bandwidth monitor thread(s) started");
     }
 
     // 自定义的线程类，在上面的方法中实例化，并被调用
     /**
      * Single thread for collecting switch statistics and containing the reply.
      */
-    private class GetBandwidthThread extends Thread implements Runnable {
-        private Map<NodePortTuple, SwitchPortBandwidth> bandwidth;
+    private class BandwidthUpdateThread extends Thread implements Runnable {
 
         @Override
         public void run() {
-            log.info("tank# GetBandwidthThread run ....");
-            bandwidth = getBandwidthMap();
+            bandwidth = statisticsService.getBandwidthConsumption();
             log.info("tank# bandwidth size: {}", bandwidth.size());
             log.info("tank# bandwidth: {}", bandwidth.toString());
+            testBandwidthMonitor();
         }
     }
 
     @Override
-    public Map<NodePortTuple, SwitchPortBandwidth> getBandwidth() {
+    public Map<NodePortTuple, SwitchPortBandwidth> getBandwidthMap() {
+        // TODO Auto-generated method stub
         return bandwidth;
     }
 
@@ -123,30 +141,48 @@ public class BandwidthMonitor implements IFloodlightModule, IBandwidthMonitor {
         return bandwidth.get(nodePortTuple);
     }
 
+    /* unit Mbits/s */
+    @Override
+    public Long getPortSpeed(NodePortTuple nodePortTuple) {
+        SwitchPortBandwidth switchPortBand = bandwidth.get(nodePortTuple);
+        Long bdwth = null;
+        if (switchPortBand != null) {
+            bdwth = (switchPortBand.getBitsPerSecondRx().getValue() + switchPortBand.getBitsPerSecondTx().getValue())
+                    / 1024 / 1024;
+            return bdwth;
+        }
+        return bdwth;
+    }
+
+    /* unit Mbits/s */
+    @Override
+    public Long convertSwitchPortBandwidthToSpeed(SwitchPortBandwidth swtichPortBandwidth) {
+        Long bdwth = null;
+        if (swtichPortBandwidth != null) {
+            bdwth = (swtichPortBandwidth.getBitsPerSecondRx().getValue()
+                    + swtichPortBandwidth.getBitsPerSecondTx().getValue()) / 1024 / 1024;
+            return bdwth;
+        }
+        return bdwth;
+    }
+
     /**
      * 获取带宽使用情况 需要简单的换算 根据
      * switchPortBand.getBitsPerSecondRx().getValue()/(8*1024) +
      * switchPortBand.getBitsPerSecondTx().getValue()/(8*1024) 计算带宽
      */
 
-    @Override
-    public Map<NodePortTuple, SwitchPortBandwidth> getBandwidthMap() {
-        bandwidth = statisticsService.getBandwidthConsumption();
-        Iterator<Entry<NodePortTuple, SwitchPortBandwidth>> iter = bandwidth.entrySet().iterator();
+    public void testBandwidthMonitor() {
+        Iterator<Entry<NodePortTuple, SwitchPortBandwidth>> iter = getBandwidthMap().entrySet().iterator();
         while (iter.hasNext()) {
             Entry<NodePortTuple, SwitchPortBandwidth> entry = iter.next();
             NodePortTuple tuple = entry.getKey();
-            SwitchPortBandwidth switchPortBand = entry.getValue();
+
+            SwitchPortBandwidth switchPortBand = getPortBandwidth(tuple);
             String info = tuple.getNodeId() + "," + tuple.getPortId().getPortNumber() + ","
-                    + (switchPortBand.getBitsPerSecondRx().getValue() + switchPortBand.getBitsPerSecondTx().getValue())
-                            / 1024 / 1024
-                    + " Mbits/s";
-            // String info =
-            // tuple.getNodeId()+","+tuple.getPortId().getPortNumber()+","+(switchPortBand.getBitsPerSecondRx().getValue()/(8*1024)
-            // + switchPortBand.getBitsPerSecondTx().getValue()/(8*1024));
+                    + convertSwitchPortBandwidthToSpeed(switchPortBand) + " Mbits/s";
             log.info("tank# sw port speed: {}", info);
         }
 
-        return bandwidth;
     }
 }

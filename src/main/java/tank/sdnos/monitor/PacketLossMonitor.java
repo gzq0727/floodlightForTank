@@ -3,8 +3,10 @@ package tank.sdnos.monitor;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Map.Entry;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -23,6 +25,7 @@ import net.floodlightcontroller.core.module.IFloodlightModule;
 import net.floodlightcontroller.core.module.IFloodlightService;
 import net.floodlightcontroller.threadpool.IThreadPoolService;
 import net.floodlightcontroller.core.types.NodePortTuple;
+import net.floodlightcontroller.statistics.IStatisticsService;
 
 /**
  * 获取丢包率模块
@@ -36,10 +39,11 @@ public class PacketLossMonitor implements IFloodlightModule, IPacketLossMonitor 
     private static IOFSwitchService switchService;
     private static IThreadPoolService threadPoolService;
     private static ISwitchStatisticsCollector swStatisticsCollector;
-    private static ScheduledFuture<?> portStatsCollector;
+    private static ScheduledFuture<?> packetLossStatsCollector;
 
     private static volatile HashMap<NodePortTuple, Long> DPID_PK_LOSS = new HashMap<NodePortTuple, Long>();
     private static int statsUpdateInterval = 5;
+    private static boolean isEnabled = true;
 
     @Override
     public Collection<Class<? extends IFloodlightService>> getModuleServices() {
@@ -50,8 +54,7 @@ public class PacketLossMonitor implements IFloodlightModule, IPacketLossMonitor 
 
     @Override
     public Map<Class<? extends IFloodlightService>, IFloodlightService> getServiceImpls() {
-        Map<Class<? extends IFloodlightService>, IFloodlightService> l =
-                new HashMap<Class<? extends IFloodlightService>, IFloodlightService>();
+        Map<Class<? extends IFloodlightService>, IFloodlightService> l = new HashMap<Class<? extends IFloodlightService>, IFloodlightService>();
         l.put(IPacketLossMonitor.class, this);
         return l;
     }
@@ -62,6 +65,7 @@ public class PacketLossMonitor implements IFloodlightModule, IPacketLossMonitor 
         l.add(IOFSwitchService.class);
         l.add(IThreadPoolService.class);
         l.add(ISwitchStatisticsCollector.class);
+        l.add(IStatisticsService.class);
         return l;
     }
 
@@ -71,30 +75,45 @@ public class PacketLossMonitor implements IFloodlightModule, IPacketLossMonitor 
         threadPoolService = context.getServiceImpl(IThreadPoolService.class);
         swStatisticsCollector = context.getServiceImpl(ISwitchStatisticsCollector.class);
 
-        Map<String, String> config = context.getConfigParams(this);
-
+        Map<String, String> config = context
+                .getConfigParams(net.floodlightcontroller.statistics.StatisticsCollector.class);
         if (config.containsKey("collectionIntervalPortStatsSecond")) {
             try {
                 statsUpdateInterval = Integer.parseInt(config.get("collectionIntervalPortStatsSecond").trim());
             } catch (Exception e) {
-                log.error("tank# Could not parse state update interval'. Using default of {}", statsUpdateInterval);
+                log.error(
+                        "tank# Could not parse collectionIntervalPortStatsSecond parameter in net.floodlightcontroller"
+                                + ".statistics.StatisticsCollector. Packet loss stats update interval will be set to default {}",
+                        statsUpdateInterval);
             }
         }
-        log.info("tank# packet loss rate statistics collection interval set to {}s", statsUpdateInterval);
+        log.info("tank# packet loss statistics collection interval set to {}s", statsUpdateInterval);
+
+        config = context.getConfigParams(this);
+        if (config.containsKey("enable")) {
+            try {
+                isEnabled = Boolean.parseBoolean(config.get("enable").trim());
+            } catch (Exception e) {
+                log.error("Could not parse '{}'. Using default of {}", "enable", isEnabled);
+            }
+        }
+        log.info("tank# packetloss monitor {}", isEnabled ? "enabled" : "disabled");
     }
 
     @Override
     public void startUp(FloodlightModuleContext context) throws FloodlightModuleException {
-        log.info("tank# PacketLossMonitor start");
-        startStatisticsCollection();
+        if (isEnabled) {
+            startStatisticsCollection();
+            log.info("tank# PacketLossMonitor is in service");
+        }
     }
 
     /**
      * Start all stats threads.
      */
     private synchronized void startStatisticsCollection() {
-        portStatsCollector = threadPoolService.getScheduledExecutor().scheduleAtFixedRate(new PortStatsCollector(),
-                statsUpdateInterval, statsUpdateInterval, TimeUnit.SECONDS);
+        packetLossStatsCollector = threadPoolService.getScheduledExecutor().scheduleAtFixedRate(
+                new PacketLossStatsCollector(), statsUpdateInterval, statsUpdateInterval, TimeUnit.SECONDS);
         log.info("tank# packet loss rate collection thread(s) started");
     }
 
@@ -115,7 +134,7 @@ public class PacketLossMonitor implements IFloodlightModule, IPacketLossMonitor 
      * get an elapsed time.
      *
      */
-    private class PortStatsCollector implements Runnable {
+    private class PacketLossStatsCollector implements Runnable {
         @Override
         public void run() {
             Map<DatapathId, List<OFStatsReply>> replies = swStatisticsCollector
@@ -142,6 +161,7 @@ public class PacketLossMonitor implements IFloodlightModule, IPacketLossMonitor 
                     }
                 }
             }
+            getAllFlow();
         }
     }
 
@@ -171,6 +191,29 @@ public class PacketLossMonitor implements IFloodlightModule, IPacketLossMonitor 
     @Override
     public Map<NodePortTuple, Long> getAllPortPacketLossRate() {
         return DPID_PK_LOSS;
+    }
+
+    public void getAllFlow() {
+        DatapathId switchId = DatapathId.of("00:00:00:00:00:00:00:01");
+        Set<DatapathId> dpSet = new HashSet<DatapathId>();
+        dpSet.add(switchId);
+        Map<DatapathId, List<OFStatsReply>> ofStatsReply = new HashMap<DatapathId, List<OFStatsReply>>();
+        ofStatsReply = swStatisticsCollector.getSwitchsStatistics(dpSet, OFStatsType.FLOW);
+
+        // for (OFStatsReply sr : ofStatsReply){
+        // ofFlowStatsReply.add((OFFlowStatsReply)sr);
+        // }
+        log.info("tank#  s1 all flows {}", ofStatsReply.toString());
+
+        ofStatsReply = swStatisticsCollector.getSwitchsStatistics(dpSet, OFStatsType.AGGREGATE);
+        log.info("tank#  s1 all flows {}", ofStatsReply.toString());
+        // switchId = DatapathId.of("00:00:00:00:00:00:00:02");
+        // ofStatsReply = getSwitchStatistics(switchId, OFStatsType.FLOW);
+        // log.info("tank# s2 all flows {}", ofStatsReply.toString());
+        //
+        // switchId = DatapathId.of("00:00:00:00:00:00:00:03");
+        // ofStatsReply = getSwitchStatistics(switchId, OFStatsType.FLOW);
+        // log.info("tank# s3 all flows {}", ofStatsReply.toString());
     }
 
 }

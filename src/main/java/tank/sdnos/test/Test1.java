@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.Map;
 
 import org.projectfloodlight.openflow.types.DatapathId;
+import org.projectfloodlight.openflow.types.OFPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,11 +20,13 @@ import tank.sdnos.flowutils.FlowUtils;
 import java.util.concurrent.TimeUnit;
 
 /* test flow related operations */
-public class Test1 implements IFloodlightModule{
+public class Test1 implements IFloodlightModule {
     protected static Logger logger = LoggerFactory.getLogger(Test1.class);
     protected IFloodlightProviderService floodlightProvider;
     protected IOFSwitchService switchService;
+
     static boolean executed = false;
+
     @Override
     public Collection<Class<? extends IFloodlightService>> getModuleServices() {
         // TODO Auto-generated method stub
@@ -39,8 +42,7 @@ public class Test1 implements IFloodlightModule{
     @Override
     public Collection<Class<? extends IFloodlightService>> getModuleDependencies() {
         // TODO Auto-generated method stub
-        Collection<Class<? extends IFloodlightService>> l =
-                new ArrayList<Class<? extends IFloodlightService>>();
+        Collection<Class<? extends IFloodlightService>> l = new ArrayList<Class<? extends IFloodlightService>>();
         l.add(IFloodlightProviderService.class);
         l.add(IOFSwitchService.class);
 
@@ -59,29 +61,28 @@ public class Test1 implements IFloodlightModule{
     public void startUp(FloodlightModuleContext context) throws FloodlightModuleException {
         // TODO Auto-generated method stub
         try {
-
-            TimeUnit.SECONDS.sleep(30);
+            TimeUnit.SECONDS.sleep(5);
             addOneFlow();
-
         } catch (InterruptedException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
+        // addOneFlow();
 
     }
 
-    public boolean addOneFlow(){
-        logger.info("tank#dpids: {}",switchService.getAllSwitchDpids());
+    public boolean addOneFlow() {
+        logger.info("tank#dpids: {}", switchService.getAllSwitchDpids());
         String dpid = "00:00:00:00:00:00:00:01";
         DatapathId ofDpid = DatapathId.of(dpid);
         IOFSwitch sw = switchService.getSwitch(ofDpid);
-        if(sw == null){
-            logger.error("switch of dpid {} is not found",ofDpid);
-        }else{
+        if (sw == null) {
+            logger.error("switch of dpid {} is not found", ofDpid);
+        } else {
             String match = "in_port=5,eth_type=0x0800,ipv4_dst=192.168.0.0";
             String actions = "output=30";
             return FlowUtils.addFlow(sw, match, actions);
-       }
+        }
         return false;
     }
 

@@ -38,12 +38,12 @@ public class Main {
 	/**
 	 * Main method to load configuration and modules
 	 * @param args
-	 * @throws FloodlightModuleException 
+	 * @throws FloodlightModuleException
 	 */
 	public static void main(String[] args) throws FloodlightModuleException {
 		try {
 			// Setup logger
-			System.setProperty("org.restlet.engine.loggerFacadeClass", 
+			System.setProperty("org.restlet.engine.loggerFacadeClass",
 					"org.restlet.ext.slf4j.Slf4jLoggerFacade");
 
 			CmdLineSettings settings = new CmdLineSettings();
@@ -60,7 +60,7 @@ public class Main {
 			try {
 				IFloodlightModuleContext moduleContext = fml.loadModulesFromConfig(settings.getModuleFile());
 				IRestApiService restApi = moduleContext.getServiceImpl(IRestApiService.class);
-				restApi.run(); 
+				restApi.run();
 			} catch (FloodlightModuleConfigFileNotFoundException e) {
 				// we really want to log the message, not the stack trace
 				logger.error("Could not read config file: {}", e.getMessage());
