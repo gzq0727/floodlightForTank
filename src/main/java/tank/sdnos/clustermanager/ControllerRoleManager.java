@@ -105,9 +105,4 @@ public class ControllerRoleManager {
 
     }
 
-    public static void main(String[] args) {
-        System.out.println(controllerConfigFilePath);
-        changeSwitchRoleToMaster("172.18.16.123", "00:00:00:00:00:00:00:01");
-    }
-
 }
