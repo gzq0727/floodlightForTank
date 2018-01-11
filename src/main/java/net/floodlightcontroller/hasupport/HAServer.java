@@ -26,7 +26,7 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 
 /**
- * The HA Server 
+ * The HA Server
  * This server class is instantiated by the AsyncElection, and it
  * connects to the back-end of the QueueDevice. This means that more than one of
  * these classes can be instantiated depending on the load. The server processes
@@ -77,7 +77,8 @@ public class HAServer implements Runnable {
 
 	@Override
 	public void run() {
-		Integer lastfour = Integer.valueOf(serverPort.substring(10));
+		//Integer lastfour = Integer.valueOf(serverPort.substring(10));
+	    Integer lastfour = Integer.parseInt(serverPort.split(":")[1]);
 
 		EventLoopGroup serverbossPool = new NioEventLoopGroup(1);
 		EventLoopGroup serverworkerPool = new NioEventLoopGroup(16);

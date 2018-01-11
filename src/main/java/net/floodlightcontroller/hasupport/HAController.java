@@ -43,6 +43,7 @@ import net.floodlightcontroller.hasupport.topology.TopoHAWorker;
 import net.floodlightcontroller.linkdiscovery.ILinkDiscoveryService;
 import net.floodlightcontroller.storage.IStorageSourceService;
 import net.floodlightcontroller.topology.ITopologyService;
+import tank.sdnos.clustermanager.KeepalivedStatus;
 
 /**
  * The HAController
@@ -68,208 +69,233 @@ import net.floodlightcontroller.topology.ITopologyService;
 
 public class HAController implements IFloodlightModule, IHAControllerService, IStoreListener<String>, IHAWorkerService {
 
-	private static final Logger logger = LoggerFactory.getLogger(HAController.class);
-	protected static IHAWorkerService haworker;
-	protected static ILinkDiscoveryService linkserv;
-	protected static ITopologyService toposerv;
-	protected static IFloodlightProviderService floodlightProvider;
-	protected static ISyncService syncService;
-	protected static IStoreClient<String, String> storeLD;
-	protected static IStoreClient<String, String> storeTopo;
-	private static String controllerID;
-	protected static LDHAWorker ldhaworker;
-	protected static TopoHAWorker topohaworker;
+    private static final Logger logger = LoggerFactory.getLogger(HAController.class);
+    protected static IHAWorkerService haworker;
+    protected static ILinkDiscoveryService linkserv;
+    protected static ITopologyService toposerv;
+    protected static IFloodlightProviderService floodlightProvider;
+    protected static ISyncService syncService;
+    protected static IStoreClient<String, String> storeLD;
+    protected static IStoreClient<String, String> storeTopo;
+    private static String controllerID;
+    protected static LDHAWorker ldhaworker;
+    protected static TopoHAWorker topohaworker;
 
-	private static Map<String, String> config = new HashMap<>();
-	private static Map<String, IHAWorker> workers = new HashMap<>();
-	private final List<Integer> priorities = new ArrayList<>();
-	private final String none = new String("none");
-	private AsyncElection ael;
-	private ControllerLogic cLogic;
+    private static Map<String, String> config = new HashMap<>();
+    private static Map<String, IHAWorker> workers = new HashMap<>();
+    private final List<Integer> priorities = new ArrayList<>();
+    private final String none = new String("none");
+    private AsyncElection ael;
+    private ControllerLogic cLogic;
 
-	@Override
-	public String getLeaderNonBlocking() {
-		return ael.getLeader().toString();
-	}
+    @Override
+    public String getLeaderNonBlocking() {
+        return ael.getLeader().toString();
+    }
 
-	@Override
-	public Collection<Class<? extends IFloodlightService>> getModuleDependencies() {
-		Collection<Class<? extends IFloodlightService>> l = new ArrayList<>();
-		l.add(IStorageSourceService.class);
-		l.add(IFloodlightProviderService.class);
-		l.add(ISyncService.class);
-		return l;
-	}
+    @Override
+    public Collection<Class<? extends IFloodlightService>> getModuleDependencies() {
+        Collection<Class<? extends IFloodlightService>> l = new ArrayList<>();
+        l.add(IStorageSourceService.class);
+        l.add(IFloodlightProviderService.class);
+        l.add(ISyncService.class);
+        return l;
+    }
 
-	@Override
-	public Collection<Class<? extends IFloodlightService>> getModuleServices() {
-		Collection<Class<? extends IFloodlightService>> l = new ArrayList<>();
-		l.add(IHAWorkerService.class);
-		l.add(IHAControllerService.class);
-		return l;
-	}
+    @Override
+    public Collection<Class<? extends IFloodlightService>> getModuleServices() {
+        Collection<Class<? extends IFloodlightService>> l = new ArrayList<>();
+        l.add(IHAWorkerService.class);
+        l.add(IHAControllerService.class);
+        return l;
+    }
 
-	/**
-	 * Gets the specified HAWorker object.
-	 */
+    /**
+     * Gets the specified HAWorker object.
+     */
 
-	@Override
-	public IHAWorker getService(String serviceName) {
-		synchronized (workers) {
-			return workers.get(serviceName);
-		}
-	}
+    @Override
+    public IHAWorker getService(String serviceName) {
+        synchronized (workers) {
+            return workers.get(serviceName);
+        }
+    }
 
-	@Override
-	public Map<Class<? extends IFloodlightService>, IFloodlightService> getServiceImpls() {
-		Map<Class<? extends IFloodlightService>, IFloodlightService> m = new HashMap<>();
-		/**
-		 * We are the class that implements the service
-		 */
-		m.put(IHAWorkerService.class, this);
-		m.put(IHAControllerService.class, this);
-		return m;
-	}
+    @Override
+    public Map<Class<? extends IFloodlightService>, IFloodlightService> getServiceImpls() {
+        Map<Class<? extends IFloodlightService>, IFloodlightService> m = new HashMap<>();
+        /**
+         * We are the class that implements the service
+         */
+        m.put(IHAWorkerService.class, this);
+        m.put(IHAControllerService.class, this);
+        return m;
+    }
 
-	/**
-	 * Returns the keys of the workers hashmap, which holds the objects
-	 * corresponding to the registered HAWorker classes.
-	 *
-	 */
+    /**
+     * Returns the keys of the workers hashmap, which holds the objects
+     * corresponding to the registered HAWorker classes.
+     *
+     */
 
-	@Override
-	public Set<String> getWorkerKeys() {
-		synchronized (workers) {
-			return workers.keySet();
-		}
-	}
+    @Override
+    public Set<String> getWorkerKeys() {
+        synchronized (workers) {
+            return workers.keySet();
+        }
+    }
 
-	@Override
-	public void init(FloodlightModuleContext context) throws FloodlightModuleException {
-		haworker = this;
-		config = context.getConfigParams(this);
-		linkserv = context.getServiceImpl(ILinkDiscoveryService.class);
-		toposerv = context.getServiceImpl(ITopologyService.class);
-		floodlightProvider = context.getServiceImpl(IFloodlightProviderService.class);
-		syncService = context.getServiceImpl(ISyncService.class);
-		controllerID = new String("C" + floodlightProvider.getControllerId());
-		logger.info("Configuration parameters: {} {} ", new Object[] { config.toString(), config.get("nodeid") });
-	}
+    @Override
+    public void init(FloodlightModuleContext context) throws FloodlightModuleException {
+        haworker = this;
+        config = context.getConfigParams(this);
+        linkserv = context.getServiceImpl(ILinkDiscoveryService.class);
+        toposerv = context.getServiceImpl(ITopologyService.class);
+        floodlightProvider = context.getServiceImpl(IFloodlightProviderService.class);
+        syncService = context.getServiceImpl(ISyncService.class);
+        controllerID = new String("C" + floodlightProvider.getControllerId());
+        logger.info("Configuration parameters: {} {} ", new Object[] { config.toString(), config.get("nodeid") });
+    }
 
-	@Override
-	public void keysModified(Iterator<String> keys, org.sdnplatform.sync.IStoreListener.UpdateType type) {
-	}
+    @Override
+    public void keysModified(Iterator<String> keys, org.sdnplatform.sync.IStoreListener.UpdateType type) {
+    }
 
-	@Override
-	public String pollForLeader() {
-		try {
-			Integer timeout = new Integer(60000);
-			Long start = System.nanoTime();
-			Long duration = new Long(0);
+    @Override
+    public String pollForLeader() {
+        try {
+            Integer timeout = new Integer(60000);
+            Long start = System.nanoTime();
+            Long duration = new Long(0);
 
-			while (duration <= timeout) {
-				duration = (long) ((System.nanoTime() - start) / 1000000.000);
-				if (!ael.getLeader().toString().equals(none)) {
-					break;
-				}
-				TimeUnit.MILLISECONDS.sleep(25);
-			}
-		} catch (InterruptedException e) {
-			logger.info("pollForLeader was interrupted!");
-			e.printStackTrace();
-		} catch (Exception e) {
-			logger.info("ERROR: [HAController] pollForLeader");
-			e.printStackTrace();
-		}
+            while (duration <= timeout) {
+                duration = (long) ((System.nanoTime() - start) / 1000000.000);
+                if (!ael.getLeader().toString().equals(none)) {
+                    break;
+                }
+                TimeUnit.MILLISECONDS.sleep(25);
+            }
+        } catch (InterruptedException e) {
+            logger.info("pollForLeader was interrupted!");
+            e.printStackTrace();
+        } catch (Exception e) {
+            logger.info("ERROR: [HAController] pollForLeader");
+            e.printStackTrace();
+        }
 
-		return ael.getLeader().toString();
-	}
+        return ael.getLeader().toString();
+    }
 
-	@Override
-	public String recv(String from) {
-		return AsyncElection.getNetwork().recv(from);
-	}
+    @Override
+    public String recv(String from) {
+        return AsyncElection.getNetwork().recv(from);
+    }
 
-	/**
-	 * Allows the HAWorker classes to register their class objects into the
-	 * hashmap, so that the HAController can use them.
-	 *
-	 */
+    /**
+     * Allows the HAWorker classes to register their class objects into the
+     * hashmap, so that the HAController can use them.
+     *
+     */
 
-	@Override
-	public void registerService(String serviceName, IHAWorker haw) {
-		synchronized (workers) {
-			workers.putIfAbsent(serviceName, haw);
-		}
+    @Override
+    public void registerService(String serviceName, IHAWorker haw) {
+        synchronized (workers) {
+            workers.putIfAbsent(serviceName, haw);
+        }
 
-	}
+    }
 
-	@Override
-	public boolean send(String to, String msg) {
-		return AsyncElection.getNetwork().send(to, msg);
-	}
+    @Override
+    public boolean send(String to, String msg) {
+        return AsyncElection.getNetwork().send(to, msg);
+    }
 
-	@Override
-	public void setElectionPriorities(ArrayList<Integer> priorities) {
-		ael.setElectionPriorities(priorities);
-		return;
-	}
+    @Override
+    public void setElectionPriorities(ArrayList<Integer> priorities) {
+        ael.setElectionPriorities(priorities);
+        return;
+    }
 
-	@Override
-	public void startUp(FloodlightModuleContext context) throws FloodlightModuleException {
+    @Override
+    public void startUp(FloodlightModuleContext context) throws FloodlightModuleException {
+        logger.info("LDHAWorker is starting...");
+        try {
+            HAController.syncService.registerStore("LDUpdates", Scope.GLOBAL);
 
-		logger.info("LDHAWorker is starting...");
-		try {
-			HAController.syncService.registerStore("LDUpdates", Scope.GLOBAL);
+            HAController.storeLD = HAController.syncService.getStoreClient("LDUpdates", String.class, String.class);
+            HAController.storeLD.addStoreListener(this);
+        } catch (SyncException e) {
+            throw new FloodlightModuleException("Error while setting up sync service", e);
+        }
+        HAController.ldhaworker = new LDHAWorker(HAController.storeLD, controllerID);
+        linkserv.addListener(HAController.ldhaworker);
+        haworker.registerService("LDHAWorker", HAController.ldhaworker);
 
-			HAController.storeLD = HAController.syncService.getStoreClient("LDUpdates", String.class, String.class);
-			HAController.storeLD.addStoreListener(this);
-		} catch (SyncException e) {
-			throw new FloodlightModuleException("Error while setting up sync service", e);
-		}
-		HAController.ldhaworker = new LDHAWorker(HAController.storeLD, controllerID);
-		linkserv.addListener(HAController.ldhaworker);
-		haworker.registerService("LDHAWorker", HAController.ldhaworker);
+        logger.info("TopoHAWorker is starting...");
+        try {
+            HAController.syncService.registerStore("TopoUpdates", Scope.GLOBAL);
 
-		logger.info("TopoHAWorker is starting...");
-		try {
-			HAController.syncService.registerStore("TopoUpdates", Scope.GLOBAL);
+            HAController.storeTopo = HAController.syncService.getStoreClient("TopoUpdates", String.class, String.class);
+            HAController.storeTopo.addStoreListener(this);
+        } catch (SyncException e) {
+            throw new FloodlightModuleException("Error while setting up sync service", e);
+        }
+        HAController.topohaworker = new TopoHAWorker(HAController.storeTopo, controllerID);
+        toposerv.addListener(HAController.topohaworker);
+        haworker.registerService("TopoHAWorker", HAController.topohaworker);
 
-			HAController.storeTopo = HAController.syncService.getStoreClient("TopoUpdates", String.class, String.class);
-			HAController.storeTopo.addStoreListener(this);
-		} catch (SyncException e) {
-			throw new FloodlightModuleException("Error while setting up sync service", e);
-		}
-		HAController.topohaworker = new TopoHAWorker(HAController.storeTopo, controllerID);
-		toposerv.addListener(HAController.topohaworker);
-		haworker.registerService("TopoHAWorker", HAController.topohaworker);
+        /**
+         * Read config file and start the Election class with the right params.
+         */
+        ScheduledExecutorService sesController = Executors.newScheduledThreadPool(10);
+        /*
+         * read controller election priority for the config file if not set in
+         * config file, @{ael.setElectionPriorities((ArrayList<Integer>)
+         * priorities);} will promise no exception occur and the controller has
+         * max nodeid will be the master
+         *
+         * @autor gzq
+         */
+        String electionPriorities = config.get("electionPriorities").trim();
+        for (String controllerId : electionPriorities.split(",")) {
+            priorities.add(Integer.parseInt(controllerId));
+        }
 
-		/**
-		 * Read config file and start the Election class with the right params.
-		 */
-		ScheduledExecutorService sesController = Executors.newScheduledThreadPool(10);
-		ael = new AsyncElection(config.get("serverPort"), config.get("nodeid"), haworker);
-		ael.setElectionPriorities((ArrayList<Integer>) priorities);
-		cLogic = new ControllerLogic(ael, config.get("nodeid"));
-		try {
-			/**
-			 * The logic behind, the timing: Election scheduled at 60 ms which
-			 * schedules Network Node at 30 ms Controller Logic polls for leader
-			 * every 25 ms.
-			 */
-			sesController.scheduleAtFixedRate(ael, 0, 60000, TimeUnit.MICROSECONDS);
-			sesController.scheduleAtFixedRate(cLogic, 20000, 25000, TimeUnit.MICROSECONDS);
+        /*
+         * start keepalived service
+         */
+        if (KeepalivedStatus.keepalivedIsActive()) {
+            logger.info("tank# keepalived is in service");
+        } else {
+            if (KeepalivedStatus.startKeepalived()) {
+                logger.info("tank# keepalived service start success");
+            } else {
+                logger.warn("tank# keepalived service start failed");
+            }
+        }
 
-		} catch (Exception e) {
-			sesController.shutdownNow();
-			logger.info("[Election] Was interrrupted! " + e.toString());
-			e.printStackTrace();
-		}
+        ael = new AsyncElection(config.get("serverPort"), config.get("nodeid"), haworker);
+        ael.setElectionPriorities((ArrayList<Integer>) priorities);
+        cLogic = new ControllerLogic(ael, config.get("nodeid"));
+        try {
+            /**
+             * The logic behind, the timing: Election scheduled at 60 ms which
+             * schedules Network Node at 30 ms Controller Logic polls for leader
+             * every 25 ms.
+             */
+            sesController.scheduleAtFixedRate(ael, 0, 60000, TimeUnit.MICROSECONDS);
+            sesController.scheduleAtFixedRate(cLogic, 20000, 25000, TimeUnit.MICROSECONDS);
 
-		logger.info("HAController is starting...");
+        } catch (Exception e) {
+            sesController.shutdownNow();
+            logger.info("[Election] Was interrrupted! " + e.toString());
+            e.printStackTrace();
+        }
 
-		return;
+        logger.info("HAController is starting...");
 
-	}
+        return;
+
+    }
 
 }

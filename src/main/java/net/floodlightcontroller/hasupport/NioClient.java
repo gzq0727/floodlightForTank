@@ -19,96 +19,109 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Doesn't hold socket objects, however, holds all general options, configs in
  * order to create the sockets.
  */
 
 public class NioClient {
+    private static Logger logger = LoggerFactory.getLogger(NioClient.class);
+    private static final int READ_BUF_SIZE = 1024;
+    private Integer sendTO;
+    private Integer linger;
+    private SocketChannel sc;
+    private static long lastLogOutTime = System.currentTimeMillis();
 
-	private static final int READ_BUF_SIZE = 1024;
-	private Integer sendTO;
-	private Integer linger;
-	private SocketChannel sc;
+    /**
+     * Constructor should take all standard params required, like connection
+     * timeout, SO_LINGER etc.
+     */
 
-	/**
-	 * Constructor should take all standard params required, like connection
-	 * timeout, SO_LINGER etc.
-	 */
+    public NioClient(Integer sndTimeOut, Integer linger) {
+        sendTO = sndTimeOut;
+        this.linger = linger;
 
-	public NioClient(Integer sndTimeOut, Integer linger) {
-		sendTO = sndTimeOut;
-		this.linger = linger;
+    }
 
-	}
+    public SocketChannel connectClient(String host) {
+        Integer port = Integer.parseInt(host.split(":")[1]);
+        String host2 = host.split(":")[0];
 
-	public SocketChannel connectClient(String host) {
-		Integer port = Integer.valueOf(host.substring(10));
-		String host2 = host.substring(0, 9);
+        // Integer port = Integer.valueOf(host.substring(10));
+        // String host2 = host.substring(0, 9);
 
-		InetSocketAddress inet = new InetSocketAddress(host2, port);
-		try {
-			sc = SocketChannel.open(inet);
-			sc.socket().setSoTimeout(sendTO);
-			sc.socket().setTcpNoDelay(false);
-			sc.socket().setSoLinger(false, linger);
-			sc.socket().setReuseAddress(true);
-			sc.socket().setPerformancePreferences(1, 2, 0);
-			return sc;
-		} catch (Exception e) {
-			return null;
-		}
-	}
+        InetSocketAddress inet = new InetSocketAddress(host2, port);
+        try {
+            sc = SocketChannel.open(inet);
+            sc.socket().setSoTimeout(sendTO);
+            sc.socket().setTcpNoDelay(false);
+            sc.socket().setSoLinger(false, linger);
+            sc.socket().setReuseAddress(true);
+            sc.socket().setPerformancePreferences(1, 2, 0);
+            logger.info("tank# connect to socket ip: {} port: {}",host2,port);
+            return sc;
+        } catch (Exception e) {
+            long currentTime = System.currentTimeMillis();
+            if ((currentTime - lastLogOutTime) > 5000) {
+                logger.warn("tank# can not connect to socket ip: {} port: {}", host, port);
+                lastLogOutTime = currentTime;
+            }
+            return null;
+        }
+    }
 
-	public Boolean deleteConnection() {
-		try {
-			if (sc != null) {
-				sc.close();
-				sc.socket().close();
-			}
-			return Boolean.TRUE;
-		} catch (Exception e) {
-			return Boolean.FALSE;
-		}
+    public Boolean deleteConnection() {
+        try {
+            if (sc != null) {
+                sc.close();
+                sc.socket().close();
+            }
+            return Boolean.TRUE;
+        } catch (Exception e) {
+            return Boolean.FALSE;
+        }
 
-	}
+    }
 
-	public SocketChannel getSocketChannel() {
-		try {
-			return sc;
-		} catch (Exception e) {
-			return null;
-		}
-	}
+    public SocketChannel getSocketChannel() {
+        try {
+            return sc;
+        } catch (Exception e) {
+            return null;
+        }
+    }
 
-	public String recv() {
-		try {
-			ByteBuffer dst = ByteBuffer.allocate(READ_BUF_SIZE);
-			sc.read(dst);
-			return new String(dst.array()).trim();
-		} catch (Exception e) {
-			if (sc != null) {
-				this.deleteConnection();
-			}
-			return "none";
-		}
-	}
+    public String recv() {
+        try {
+            ByteBuffer dst = ByteBuffer.allocate(READ_BUF_SIZE);
+            sc.read(dst);
+            return new String(dst.array()).trim();
+        } catch (Exception e) {
+            if (sc != null) {
+                this.deleteConnection();
+            }
+            return "none";
+        }
+    }
 
-	public Boolean send(String message) {
-		if (message.equals(null)) {
-			return Boolean.FALSE;
-		}
+    public Boolean send(String message) {
+        if (message.equals(null)) {
+            return Boolean.FALSE;
+        }
 
-		try {
-			sc.write(ByteBuffer.wrap(message.getBytes(Charset.forName("UTF-8"))));
-			return Boolean.TRUE;
-		} catch (Exception e) {
-			if (sc != null) {
-				this.deleteConnection();
-			}
-			return Boolean.FALSE;
-		}
+        try {
+            sc.write(ByteBuffer.wrap(message.getBytes(Charset.forName("UTF-8"))));
+            return Boolean.TRUE;
+        } catch (Exception e) {
+            if (sc != null) {
+                this.deleteConnection();
+            }
+            return Boolean.FALSE;
+        }
 
-	}
+    }
 
 }

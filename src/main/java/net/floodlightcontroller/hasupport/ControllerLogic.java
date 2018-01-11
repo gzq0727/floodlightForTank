@@ -21,6 +21,8 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import tank.sdnos.clustermanager.KeepalivedStatus;
+
 /**
  * The Controller's Logic
  *
@@ -90,6 +92,7 @@ public class ControllerLogic implements Runnable {
 					Long start = System.nanoTime();
 					Long duration = new Long(0);
 
+					/* wait one minute to try to get the leader */
 					while (duration <= timeout) {
 						duration = (long) ((System.nanoTime() - start) / 1000000.000);
 						if (!ael.getLeader().toString().equals(none)) {
@@ -108,8 +111,16 @@ public class ControllerLogic implements Runnable {
 
 					if (timeoutFlag) {
 						logger.info("[ControllerLogic] Election timed out, setting Controller 1 as LEADER!");
-						ael.setTempLeader(new String("1"));
-						ael.setLeader(new String("1"));
+//						ael.setTempLeader(new String("1"));
+//						ael.setLeader(new String("1"));
+						/* change the logic when master election timeout
+						 * we assume there are two senarions for election timeout to happend
+						 * the first senario: controller is down
+						 * the second senario: the network conditions for nodes in cluster is very bad
+						  */
+						if(KeepalivedStatus.keepalivedIsActive()){
+
+						}
 					}
 
 				} else {
