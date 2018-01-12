@@ -1,7 +1,6 @@
 package tank.sdnos.clustermanager;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import tank.sdnos.utils.SSHClient;
@@ -47,8 +46,6 @@ public class ControllerRoleManager {
         StringBuilder command = new StringBuilder("sed -i 's/");
         command.append("\"" + dpid + "\":\"ROLE_MASTER\"" + "/\"" + dpid + "\":\"ROLE_SLAVE\"" + "/g' "
                 + controllerConfigFilePath);
-
-        System.out.println(command.toString());
 
         Map<String, String> commandResult = new HashMap<String, String>();
 
