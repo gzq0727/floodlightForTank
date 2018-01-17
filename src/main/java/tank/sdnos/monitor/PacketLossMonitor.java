@@ -16,6 +16,7 @@ import org.projectfloodlight.openflow.protocol.OFPortStatsReply;
 import org.projectfloodlight.openflow.protocol.OFStatsReply;
 import org.projectfloodlight.openflow.protocol.OFStatsType;
 import org.projectfloodlight.openflow.types.DatapathId;
+import org.projectfloodlight.openflow.types.OFPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import net.floodlightcontroller.core.internal.IOFSwitchService;
@@ -24,7 +25,11 @@ import net.floodlightcontroller.core.module.FloodlightModuleException;
 import net.floodlightcontroller.core.module.IFloodlightModule;
 import net.floodlightcontroller.core.module.IFloodlightService;
 import net.floodlightcontroller.threadpool.IThreadPoolService;
+import tank.sdnos.monitor.CommonUse.NoDirectLink;
 import net.floodlightcontroller.core.types.NodePortTuple;
+import net.floodlightcontroller.linkdiscovery.ILinkDiscoveryService;
+import net.floodlightcontroller.linkdiscovery.Link;
+import net.floodlightcontroller.linkdiscovery.internal.LinkInfo;
 import net.floodlightcontroller.statistics.IStatisticsService;
 
 /**
@@ -39,9 +44,16 @@ public class PacketLossMonitor implements IFloodlightModule, IPacketLossMonitor 
     private static IOFSwitchService switchService;
     private static IThreadPoolService threadPoolService;
     private static ISwitchStatisticsCollector swStatisticsCollector;
+    private static ILinkDiscoveryService linkDiscoveryService;
     private static ScheduledFuture<?> packetLossStatsCollector;
 
     private static volatile HashMap<NodePortTuple, Long> DPID_PK_LOSS = new HashMap<NodePortTuple, Long>();
+
+    private static Map<NoDirectLink, Long> allNoDirectLinkLossRate = new HashMap<NoDirectLink, Long>();
+
+    private static int TOP = 3;
+    private static LinkLoss[] TopNLossLinks = new LinkLoss[3];
+
     private static int statsUpdateInterval = 5;
     private static boolean isEnabled = true;
 
@@ -74,7 +86,7 @@ public class PacketLossMonitor implements IFloodlightModule, IPacketLossMonitor 
         switchService = context.getServiceImpl(IOFSwitchService.class);
         threadPoolService = context.getServiceImpl(IThreadPoolService.class);
         swStatisticsCollector = context.getServiceImpl(ISwitchStatisticsCollector.class);
-
+        linkDiscoveryService = context.getServiceImpl(ILinkDiscoveryService.class);
         Map<String, String> config = context
                 .getConfigParams(net.floodlightcontroller.statistics.StatisticsCollector.class);
         if (config.containsKey("collectionIntervalPortStatsSecond")) {
@@ -155,14 +167,64 @@ public class PacketLossMonitor implements IFloodlightModule, IPacketLossMonitor 
                         } else {
                             pk_loss = 0;
                         }
-                        log.info("tank# packet loss rate: {} {} {}", new Object[] { npt.getNodeId().toString(),
-                                npt.getPortId().toString(), String.valueOf(pk_loss) });
                         DPID_PK_LOSS.put(npt, pk_loss);
                     }
                 }
             }
-            getAllFlow();
+
+            Map<Link, LinkInfo> linksInfo = linkDiscoveryService.getLinks();
+            Set<NoDirectLink> noDirectLinks = new HashSet<NoDirectLink>();
+            noDirectLinks = CommonUse.getNoDirectionLinksSet(linksInfo);
+            log.info("tank# the size of noDirectLinks is: {}", noDirectLinks.size());
+
+            for (NoDirectLink noDirectLink : noDirectLinks) {
+                Long srcLossRate = DPID_PK_LOSS
+                        .get(new NodePortTuple(noDirectLink.getSrc(), noDirectLink.getSrcPort()));
+                Long dstLossRate = DPID_PK_LOSS
+                        .get(new NodePortTuple(noDirectLink.getDst(), noDirectLink.getDstPort()));
+                allNoDirectLinkLossRate.put(noDirectLink, srcLossRate + dstLossRate);
+            }
+            testPacketLossMonitor();
         }
+    }
+
+    private void testPacketLossMonitor() {
+        LinkLoss[] testLinkLoss = new LinkLoss[TOP];
+        testLinkLoss = getTopNLossLinks();
+        for (int i = 0; i < TOP; i++) {
+            if (testLinkLoss[i] != null) {
+                log.info("tank# the top {} no direct link loss is: {}", i + 1, testLinkLoss[i].getLossRate());
+            } else {
+                log.info("tank# the top {} no direct link loss is: {}", i + 1, null);
+            }
+        }
+    }
+
+    public static class LinkLoss {
+        private Link link;
+        private Long lossRate;
+
+        public LinkLoss(Link link, Long lossRate) {
+            this.link = link;
+            this.lossRate = lossRate;
+        }
+
+        public Link getLink() {
+            return link;
+        }
+
+        public void setLink(Link link) {
+            this.link = link;
+        }
+
+        public Long getLossRate() {
+            return lossRate;
+        }
+
+        public void setLossRate(Long lossRate) {
+            this.lossRate = lossRate;
+        }
+
     }
 
     @Override
@@ -193,27 +255,75 @@ public class PacketLossMonitor implements IFloodlightModule, IPacketLossMonitor 
         return DPID_PK_LOSS;
     }
 
-    public void getAllFlow() {
-        DatapathId switchId = DatapathId.of("00:00:00:00:00:00:00:01");
-        Set<DatapathId> dpSet = new HashSet<DatapathId>();
-        dpSet.add(switchId);
-        Map<DatapathId, List<OFStatsReply>> ofStatsReply = new HashMap<DatapathId, List<OFStatsReply>>();
-        ofStatsReply = swStatisticsCollector.getSwitchsStatistics(dpSet, OFStatsType.FLOW);
+    @Override
+    public LinkLoss[] getTopNLossLinks() {
+        // TODO Auto-generated method stub
+        List<Entry<NoDirectLink, Long>> sortedLinks = CommonUse.sortByValue(allNoDirectLinkLossRate);
+        int i = 0;
+        try {
+            for (i = 0; i < TOP; i++) {
+                Entry<NoDirectLink, Long> link = sortedLinks.get(i);
+                LinkLoss lossLink = new LinkLoss(link.getKey(), link.getValue());
+                TopNLossLinks[i] = lossLink;
+            }
 
-        // for (OFStatsReply sr : ofStatsReply){
-        // ofFlowStatsReply.add((OFFlowStatsReply)sr);
-        // }
-        log.info("tank#  s1 all flows {}", ofStatsReply.toString());
+        } catch (IndexOutOfBoundsException e) {
+            for (int j = i; j < TOP; j++) {
+                TopNLossLinks[j] = null;
+            }
+        }
+        return TopNLossLinks;
 
-        ofStatsReply = swStatisticsCollector.getSwitchsStatistics(dpSet, OFStatsType.AGGREGATE);
-        log.info("tank#  s1 all flows {}", ofStatsReply.toString());
-        // switchId = DatapathId.of("00:00:00:00:00:00:00:02");
-        // ofStatsReply = getSwitchStatistics(switchId, OFStatsType.FLOW);
-        // log.info("tank# s2 all flows {}", ofStatsReply.toString());
-        //
-        // switchId = DatapathId.of("00:00:00:00:00:00:00:03");
-        // ofStatsReply = getSwitchStatistics(switchId, OFStatsType.FLOW);
-        // log.info("tank# s3 all flows {}", ofStatsReply.toString());
     }
 
+    @Override
+    public Long getNoDirectLinkLossRate(Link link) {
+        // TODO Auto-generated method stub
+        NoDirectLink noDirectLink = CommonUse.getNoDirectionLink(link);
+        return allNoDirectLinkLossRate.get(noDirectLink);
+    }
+
+    @Override
+    public Long getNoDirectLinkLossRate(NoDirectLink link) {
+        // TODO Auto-generated method stub
+        return allNoDirectLinkLossRate.get(link);
+    }
+
+    @Override
+    public Long getNoDirectLinkLossRate(DatapathId srcSw, OFPort srcPort, DatapathId dstSw, OFPort dstPort) {
+        // TODO Auto-generated method stub
+
+        NoDirectLink noDirectLink = new NoDirectLink(srcSw, srcPort, dstSw, dstPort);
+        return allNoDirectLinkLossRate.get(noDirectLink);
+    }
+
+    @Override
+    public Long getNoDirectMaxLoss() {
+        // TODO Auto-generated method stub
+        LinkLoss linkLoss = getMaxLossNoDirectLink();
+        if (linkLoss != null) {
+            return linkLoss.getLossRate();
+        } else {
+            return null;
+        }
+    }
+
+    @Override
+    public LinkLoss getMaxLossNoDirectLink() {
+        // TODO Auto-generated method stub
+        NoDirectLink idealLink = null;
+        Long maxLossRate = new Long(0);
+        for (NoDirectLink link : allNoDirectLinkLossRate.keySet()) {
+            if (allNoDirectLinkLossRate.get(link) >= maxLossRate) {
+                maxLossRate = allNoDirectLinkLossRate.get(link);
+                idealLink = link;
+            }
+        }
+        if (idealLink != null) {
+            LinkLoss maxLossLink = new LinkLoss(idealLink, maxLossRate);
+            return maxLossLink;
+        } else {
+            return null;
+        }
+    }
 }

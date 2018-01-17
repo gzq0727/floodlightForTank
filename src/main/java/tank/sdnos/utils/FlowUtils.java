@@ -33,11 +33,26 @@ import org.projectfloodlight.openflow.protocol.OFGroupType;
 import org.projectfloodlight.openflow.protocol.OFPacketIn;
 import org.projectfloodlight.openflow.protocol.OFVersion;
 import org.projectfloodlight.openflow.protocol.action.OFAction;
+import org.projectfloodlight.openflow.protocol.action.OFActionEnqueue;
 import org.projectfloodlight.openflow.protocol.action.OFActionGroup;
 import org.projectfloodlight.openflow.protocol.action.OFActionMeter;
 import org.projectfloodlight.openflow.protocol.action.OFActionOutput;
 import org.projectfloodlight.openflow.protocol.action.OFActionPopMpls;
+import org.projectfloodlight.openflow.protocol.action.OFActionPopVlan;
+import org.projectfloodlight.openflow.protocol.action.OFActionPushMpls;
+import org.projectfloodlight.openflow.protocol.action.OFActionPushVlan;
+import org.projectfloodlight.openflow.protocol.action.OFActionSetDlDst;
+import org.projectfloodlight.openflow.protocol.action.OFActionSetDlSrc;
+import org.projectfloodlight.openflow.protocol.action.OFActionSetMplsLabel;
+import org.projectfloodlight.openflow.protocol.action.OFActionSetNwDst;
+import org.projectfloodlight.openflow.protocol.action.OFActionSetNwSrc;
+import org.projectfloodlight.openflow.protocol.action.OFActionSetNwTtl;
+import org.projectfloodlight.openflow.protocol.action.OFActionSetTpDst;
+import org.projectfloodlight.openflow.protocol.action.OFActionSetTpSrc;
+import org.projectfloodlight.openflow.protocol.action.OFActionSetVlanVid;
+import org.projectfloodlight.openflow.protocol.action.OFActionStripVlan;
 import org.projectfloodlight.openflow.protocol.action.OFActions;
+import org.projectfloodlight.openflow.protocol.instruction.OFInstruction;
 import org.projectfloodlight.openflow.protocol.match.Match;
 import org.projectfloodlight.openflow.protocol.match.MatchField;
 import org.projectfloodlight.openflow.protocol.match.MatchFields;
@@ -158,8 +173,19 @@ public class FlowUtils {
         }
     }
 
-    /* build match from String */
-    static Match buildMatch(IOFSwitch sw, String match) {
+    /**
+     * build match from String
+     *
+     * @param match
+     *            an String representation of match, such
+     *            as:inport=1,ethtype=0x0800
+     * @param sw
+     *            the IOFSwitch you want to send flowmod message
+     * @return Match org.projectfloodlight.openflow.protocol.match.Match
+     *
+     *
+     */
+    public static Match buildMatch(IOFSwitch sw, String match) {
         OFVersion ofVersion = sw.getOFFactory().getVersion();
 
         return MatchUtils.fromString(match, ofVersion);
@@ -167,7 +193,7 @@ public class FlowUtils {
     }
 
     /* build actions from String */
-    static List<OFAction> buildActions(IOFSwitch sw, String actions) {
+    public static List<OFAction> buildActions(IOFSwitch sw, String actions) {
         List<OFAction> actionList = new ArrayList<OFAction>();
         OFActions ofActions = sw.getOFFactory().actions();
 
@@ -204,64 +230,111 @@ public class FlowUtils {
                                                        // completely removes it
                                                        // from the queue.
             switch (key_value[0]) {
-            case "en_queue":
+            case "en_queue": /*
+                              * en_queue=1:1 the first parameter means port and
+                              * the second paremeter means queue id
+                              */
+                OFActionEnqueue.Builder ab0 = ofActions.buildEnqueue();
+                ab0.setPort(OFPort.of(Integer.parseInt(key_value[1].split(":")[1])));
+                ab0.setQueueId(Long.parseLong(key_value[1].split(":")[1]));
+                actionList.add(ab0.build());
                 break;
             case "group":
-                OFActionGroup.Builder ab0 = ofActions.buildGroup();
+                OFActionGroup.Builder ab1 = ofActions.buildGroup();
+                ab1.setGroup(OFGroup.of(Integer.parseInt(key_value[1])));
+                actionList.add(ab1.build());
                 break;
             case "meter":
-                OFActionMeter.Builder ab1 = ofActions.buildMeter();
+                OFActionMeter.Builder ab2 = ofActions.buildMeter();
                 break;
             case "output":
-                OFActionOutput.Builder ab2 = ofActions.buildOutput();
+                OFActionOutput.Builder ab3 = ofActions.buildOutput();
                 OFPort output_port = MatchUtils.portFromString(key_value[1]);
-                ab2.setPort(output_port);
-                actionList.add(ab2.build());
+                ab3.setPort(output_port);
+                actionList.add(ab3.build());
                 break;
             case "pop_mpls":
-                OFActionPopMpls.Builder ab3 = ofActions.buildPopMpls();
+                OFActionPopMpls.Builder ab4 = ofActions.buildPopMpls();
+                actionList.add(ab4.build());
                 break;
             case "pop_pbb":
                 break;
             case "pop_vlan":
+                OFActionPopVlan ab6 = ofActions.popVlan();
+                actionList.add(ab6);
                 break;
             case "push_mpls":
+                OFActionPushMpls.Builder ab7 = ofActions.buildPushMpls();
+                ab7.setEthertype(EthType.of(0x8847));
+                actionList.add(ab7.build());
                 break;
             case "push_pbb":
                 break;
             case "push_vlan":
+                OFActionPushVlan.Builder ab9 = ofActions.buildPushVlan();
+                ab9.setEthertype(EthType.of(0X8100));
+                actionList.add(ab9.build());
                 break;
             case "set_dl_dst":
+                OFActionSetDlDst.Builder ab10 = ofActions.buildSetDlDst();
+                ab10.setDlAddr(MacAddress.of(key_value[1]));
+                actionList.add(ab10.build());
                 break;
             case "set_dl_src":
+                OFActionSetDlSrc.Builder ab11 = ofActions.buildSetDlSrc();
+                ab11.setDlAddr(MacAddress.of(key_value[1]));
+                actionList.add(ab11.build());
                 break;
             case "set_field":
                 break;
             case "setMplsLabel":
+                OFActionSetMplsLabel.Builder ab13 = ofActions.buildSetMplsLabel();
+                ab13.setMplsLabel(Long.parseLong(key_value[1]));
+                actionList.add(ab13.build());
                 break;
             case "set_mpls_tc":
                 break;
             case "set_mpls_ttl":
                 break;
             case "set_nw_dst":
+                OFActionSetNwDst.Builder ab16 = ofActions.buildSetNwDst();
+                ab16.setNwAddr(IPv4Address.of(key_value[1]));
+                actionList.add(ab16.build());
                 break;
             case "set_nw_ecn":
                 break;
             case "set_nw_src":
+                OFActionSetNwSrc.Builder ab18 = ofActions.buildSetNwSrc();
+                ab18.setNwAddr(IPv4Address.of(key_value[1]));
+                actionList.add(ab18.build());
                 break;
             case "set_nw_ttl":
+                OFActionSetNwTtl.Builder ab19 = ofActions.buildSetNwTtl();
+                ab19.setNwTtl(Short.parseShort(key_value[1]));
+                actionList.add(ab19.build());
                 break;
             case "set_queue":
                 break;
             case "set_tp_dst":
+                OFActionSetTpDst.Builder ab21 = ofActions.buildSetTpDst();
+                ab21.setTpPort(TransportPort.of(Integer.parseInt(key_value[1])));
+                actionList.add(ab21.build());
                 break;
             case "set_tp_src":
+                OFActionSetTpSrc.Builder ab22 = ofActions.buildSetTpSrc();
+                ab22.setTpPort(TransportPort.of(Integer.parseInt(key_value[1])));
+                actionList.add(ab22.build());
                 break;
             case "set_vlan_pcp":
                 break;
             case "set_vlan_vid":
+                OFActionSetVlanVid.Builder ab24 = ofActions.buildSetVlanVid();
+                ab24.setVlanVid(VlanVid.ofVlan(Integer.parseInt(key_value[1])));
+                actionList.add(ab24.build());
                 break;
             case "strip_vlan":
+                OFActionStripVlan ab25 = ofActions.stripVlan();
+                actionList.add(ab25);
                 break;
             default:
                 throw new IllegalArgumentException("tank:unknown token " + key_value + " parsing " + actions);
@@ -288,7 +361,9 @@ public class FlowUtils {
         return fmb;
     }
 
-    /* add flow using default parameter */
+    /**
+     * add flow using default parameter
+     */
     public static boolean addFlow(IOFSwitch sw, String match, String actions) {
         OFFlowMod.Builder fmb = makeAddFlow(sw, match, actions);
 
@@ -561,7 +636,7 @@ public class FlowUtils {
         return gb;
     }
 
-    public static boolean addAllGroup(IOFSwitch sw, int groupNumber, String groupType, List<String> actionBuckets) {
+    public static boolean addAllGroup(IOFSwitch sw, int groupNumber, List<String> actionBuckets) {
         OFGroupType gType = OFGroupType.ALL;
         List<OFBucket> buckets = new ArrayList<OFBucket>();
 
@@ -580,8 +655,7 @@ public class FlowUtils {
     /*
      * Map<String,String> actionBuckets : the key is action and value is weight
      */
-    public static boolean addSelectGroup(IOFSwitch sw, int groupNumber, String groupType,
-            Map<String, String> actionBuckets) {
+    public static boolean addSelectGroup(IOFSwitch sw, int groupNumber, Map<String, String> actionBuckets) {
         OFGroupType gType = OFGroupType.SELECT;
         List<OFBucket> buckets = new ArrayList<OFBucket>();
 
@@ -599,8 +673,7 @@ public class FlowUtils {
         return true;
     }
 
-    public static boolean addIndirectGroup(IOFSwitch sw, int groupNumber, String groupType,
-            List<String> actionBuckets) {
+    public static boolean addIndirectGroup(IOFSwitch sw, int groupNumber, List<String> actionBuckets) {
         OFGroupType gType = OFGroupType.INDIRECT;
         List<OFBucket> buckets = new ArrayList<OFBucket>();
 
@@ -621,8 +694,7 @@ public class FlowUtils {
      * string for watch port and group, but the format is such as
      * watchPort=1,watchGroup=1
      */
-    public static boolean addFfGroup(IOFSwitch sw, int groupNumber, String groupType,
-            Map<String, String> actionBuckets) {
+    public static boolean addFfGroup(IOFSwitch sw, int groupNumber, Map<String, String> actionBuckets) {
         OFGroupType gType = OFGroupType.FF;
         List<OFBucket> buckets = new ArrayList<OFBucket>();
 
@@ -716,6 +788,14 @@ public class FlowUtils {
         return false;
 
     }
+
+
+
+
+
+
+
+
 
     public static void main(String[] args) {
         FlowUtils flowUtils = new FlowUtils();

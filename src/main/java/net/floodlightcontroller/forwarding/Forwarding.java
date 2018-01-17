@@ -434,7 +434,7 @@ public class Forwarding extends ForwardingBase implements IFloodlightModule, IOF
                 == EthType.ARP) {
             log.debug("ARP flows disabled in Forwarding. Flooding ARP packet");
             doFlood(sw, pi, decision, cntx);
-            return;
+            //return;
         }
 
         /* This packet-in is from a switch in the path before its flow was installed along the path */

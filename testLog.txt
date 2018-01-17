@@ -1,0 +1,49 @@
+**********************************************
+Test testPacket
+
+**********************************************
+Test testBandsCapacity
+
+clear all
+**********************************************
+Test testMeterInsert
+Send 00:00:00:00:00:00:00:02 meter: 0x01
+Send 00:00:00:00:00:00:00:01 meter: 0x01
+Send 00:00:00:00:00:00:00:03 meter: 0x01
+Test Failed: 00:00:00:00:00:00:00:02 not meter 0x01
+Test Failed: 00:00:00:00:00:00:00:01 not meter 0x01
+Test Failed: 00:00:00:00:00:00:00:03 not meter 0x01
+
+clear all
+**********************************************
+Test testModifyMeter
+Send 00:00:00:00:00:00:00:02 meter: 0x01
+Send 00:00:00:00:00:00:00:01 meter: 0x01
+Send 00:00:00:00:00:00:00:03 meter: 0x01
+Test Failed: 00:00:00:00:00:00:00:02 not meter 0x01
+Test Failed: 00:00:00:00:00:00:00:01 not meter 0x01
+Test Failed: 00:00:00:00:00:00:00:03 not meter 0x01
+Modify meter: 0x01 from 00:00:00:00:00:00:00:02
+Modify meter: 0x01 from 00:00:00:00:00:00:00:01
+Modify meter: 0x01 from 00:00:00:00:00:00:00:03
+Test Failed: 00:00:00:00:00:00:00:02 didn't modify meter 0x01
+Test Failed: 00:00:00:00:00:00:00:01 didn't modify meter 0x01
+Test Failed: 00:00:00:00:00:00:00:03 didn't modify meter 0x01
+
+clear all
+**********************************************
+Test testDeleteMeter
+Send 00:00:00:00:00:00:00:02 meter: 0x01
+Send 00:00:00:00:00:00:00:01 meter: 0x01
+Send 00:00:00:00:00:00:00:03 meter: 0x01
+Test Failed: 00:00:00:00:00:00:00:02 not meter 0x01
+Test Failed: 00:00:00:00:00:00:00:01 not meter 0x01
+Test Failed: 00:00:00:00:00:00:00:03 not meter 0x01
+Delete meter: 0x01 from 00:00:00:00:00:00:00:02
+Delete meter: 0x01 from 00:00:00:00:00:00:00:01
+Delete meter: 0x01 from 00:00:00:00:00:00:00:03
+Test Success: 00:00:00:00:00:00:00:02 delete meter 0x01
+Test Success: 00:00:00:00:00:00:00:01 delete meter 0x01
+Test Success: 00:00:00:00:00:00:00:03 delete meter 0x01
+
+clear all

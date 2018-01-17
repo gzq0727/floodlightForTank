@@ -264,15 +264,15 @@ public class HAController implements IFloodlightModule, IHAControllerService, IS
         /*
          * start keepalived service
          */
-        if (KeepalivedStatus.keepalivedIsActive()) {
-            logger.info("tank# keepalived is in service");
-        } else {
-            if (KeepalivedStatus.startKeepalived()) {
-                logger.info("tank# keepalived service start success");
-            } else {
-                logger.warn("tank# keepalived service start failed");
-            }
-        }
+//        if (KeepalivedStatus.keepalivedIsActive()) {
+//            logger.info("tank# keepalived is in service");
+//        } else {
+//            if (KeepalivedStatus.startKeepalived()) {
+//                logger.info("tank# keepalived service start success");
+//            } else {
+//                logger.warn("tank# keepalived service start failed");
+//            }
+//        }
 
         ael = new AsyncElection(config.get("serverPort"), config.get("nodeid"), haworker);
         ael.setElectionPriorities((ArrayList<Integer>) priorities);

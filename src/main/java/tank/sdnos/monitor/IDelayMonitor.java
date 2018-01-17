@@ -1,9 +1,8 @@
 package tank.sdnos.monitor;
 
-import org.projectfloodlight.openflow.types.U64;
-
 import net.floodlightcontroller.core.module.IFloodlightService;
 import net.floodlightcontroller.linkdiscovery.Link;
+import tank.sdnos.monitor.DelayMonitor.LinkDelay;
 
 public interface IDelayMonitor extends IFloodlightService {
 
@@ -13,21 +12,34 @@ public interface IDelayMonitor extends IFloodlightService {
      * internal.LinkInfo.addObservedLatency(U64 latency) depended on the average
      * latency and currentlatency
      */
-    public U64 getLatency(String srcSw, String srcPort, String dstSw, String dstPort);
+    public Long getDirectLatency(String srcSw, String srcPort, String dstSw, String dstPort);
 
-    public U64 getLatency(Link link);
+    public Long getDirectLatency(Link link);
 
     /* return the link current latency = the last latency measured */
-    public U64 getCurrentLatency(String srcSw, String srcPort, String dstSw, String dstPort);
+    public Long getDirectCurrentLatency(String srcSw, String srcPort, String dstSw, String dstPort);
 
-    public U64 getCurrentLatency(Link link);
+    public Long getDirectCurrentLatency(Link link);
 
     /*
      * return the link average latency calcute by
      * net.floodlightcontroller.linkdiscovery.internal.LinkInfo.
      * getLatencyHistoryAverageForTank()
      */
-    public U64 getAverageLatency(String srcSw, String srcPort, String dstSw, String dstPort);
+    public Long getDirectAverageLatency(String srcSw, String srcPort, String dstSw, String dstPort);
 
-    public U64 getAverageLatency(Link link);
+    public Long getDirectAverageLatency(Link link);
+
+    public Long getMaxDirectLinkDelay();
+
+    public LinkDelay getMaxDirectLinkDelayDetail();
+
+    public LinkDelay[] getTopNDelayDirectLinks();
+
+    public Long getMaxNoDirectLinkDelay();
+
+    public LinkDelay getMaxNoDirectLinkDelayDetail();
+
+    public LinkDelay[] getTopNDelayNoDirectLinks();
+
 }

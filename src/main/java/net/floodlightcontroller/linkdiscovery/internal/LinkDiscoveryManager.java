@@ -739,9 +739,9 @@ IFloodlightModule, IInfoProvider {
 			// has recently
 			// disconnected, or from a switch connected to another Floodlight
 			// instance
-			log.info("tank# Received LLDP from remote switch not connected to the controller");
+			log.info("tank# Received LLDP from remote switch not connected to my controller");
 			if (log.isTraceEnabled()) {
-				log.trace("Received LLDP from remote switch not connected to the controller");
+				log.trace("Received LLDP from remote switch not connected to my controller");
 			}
 			return Command.STOP;
 		}

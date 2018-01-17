@@ -413,7 +413,7 @@ public class OFSwitchHandshakeHandler implements IOFConnectionListener {
 	}
 
 	/**
-	 * Removes all present flows 
+	 * Removes all present flows
 	 */
 	private void clearAllTables() {
 		/*
@@ -441,17 +441,17 @@ public class OFSwitchHandshakeHandler implements IOFConnectionListener {
 				delgroup.setCommandBucketId(OFGroupBucket.BUCKET_ALL);
 			}
 			this.sw.write(delgroup.build());
-			
+
 			/* UNSUPPORT GROUP TYPE FOR RUIJIE SWITCH
 			delgroup.setGroupType(OFGroupType.FF);
 			this.sw.write(delgroup.build());
 			*/
-			
+
 			/* INVALID GROUP FOR INDIRECT GROUP TYPE WHEN DELETE INDIRECT GROUP FOR RUIJIE SWITCH
 			delgroup.setGroupType(OFGroupType.INDIRECT);
 			this.sw.write(delgroup.build());
 			*/
-			
+
 			delgroup.setGroupType(OFGroupType.SELECT);
 			this.sw.write(delgroup.build());
 
@@ -465,16 +465,16 @@ public class OFSwitchHandshakeHandler implements IOFConnectionListener {
 		}
 	}
 
-	/** 
-	 * Adds an initial table-miss flow to tables on the switch. 
-	 * This replaces the default behavior of forwarding table-miss packets 
-	 * to the controller. The table-miss flows inserted will forward all 
+	/**
+	 * Adds an initial table-miss flow to tables on the switch.
+	 * This replaces the default behavior of forwarding table-miss packets
+	 * to the controller. The table-miss flows inserted will forward all
 	 * packets that do not match a flow to the controller for processing.
-	 * 
+	 *
 	 * The OFSwitchManager is checked for used-defined behavior and default
 	 * max table to try to use.
-	 * 
-	 * Adding the default flow only applies to OpenFlow 1.3+ switches, which 
+	 *
+	 * Adding the default flow only applies to OpenFlow 1.3+ switches, which
 	 * remove the default forward-to-controller behavior of flow tables.
 	 */
 	private void addDefaultFlows() {
@@ -506,7 +506,7 @@ public class OFSwitchHandshakeHandler implements IOFConnectionListener {
 					if (tf != null && (missCount < this.sw.getMaxTableForTableMissFlow().getValue())) {
 					*/
 					/*
-					 in order to install the default flow on N18010 & S8610E, we must add one operation: =  
+					 in order to install the default flow on N18010 & S8610E, we must add one operation: =
 					 */
 					if (tf != null && (missCount <= this.sw.getMaxTableForTableMissFlow().getValue())) {
 						if (tf.getPropApplyActionsMiss() != null) {
@@ -592,7 +592,8 @@ public class OFSwitchHandshakeHandler implements IOFConnectionListener {
 				processPortDescStatsReply((OFPortDescStatsReply) m);
 				break;
 			default:
-				unhandledMessageReceived(m);
+			    dispatchMessage(m);
+				//unhandledMessageReceived(m);
 			}
 		}
 
@@ -611,7 +612,7 @@ public class OFSwitchHandshakeHandler implements IOFConnectionListener {
 		void processOFRoleRequest(OFRoleRequest m) {
 			unhandledMessageWritten(m);
 		}
-		
+
 		/**
 		 *  Tulio Ribeiro
 		 */
@@ -944,7 +945,7 @@ public class OFSwitchHandshakeHandler implements IOFConnectionListener {
 	 * we send a DescriptionStatsRequest to the switch.
 	 * Next state: WAIT_DESCRIPTION_STAT_REPLY
 	 */
-	public class WaitConfigReplyState extends OFSwitchHandshakeState {		
+	public class WaitConfigReplyState extends OFSwitchHandshakeState {
 		WaitConfigReplyState() {
 			super(false);
 		}
@@ -974,7 +975,7 @@ public class OFSwitchHandshakeHandler implements IOFConnectionListener {
 			/*
 			 * HP ProCurve switches do not support
 			 * the ofpt_barrier_request message.
-			 * 
+			 *
 			 * Look for an error from a bad ofpt_barrier_request,
 			 * log a warning, but proceed.
 			 */
@@ -989,7 +990,7 @@ public class OFSwitchHandshakeHandler implements IOFConnectionListener {
 			} else {
 				logErrorDisconnect(m);
 			}
-		} 
+		}
 
 		@Override
 		void enterState() {
@@ -1016,7 +1017,7 @@ public class OFSwitchHandshakeHandler implements IOFConnectionListener {
 	public class WaitDescriptionStatReplyState extends OFSwitchHandshakeState{
 
 		long timestamp;
-		
+
 		WaitDescriptionStatReplyState() {
 			super(false);
 		}
@@ -1032,7 +1033,7 @@ public class OFSwitchHandshakeHandler implements IOFConnectionListener {
 			OFDescStatsReply descStatsReply = (OFDescStatsReply) m;
 			SwitchDescription description = new SwitchDescription(descStatsReply);
 			sw = switchManager.getOFSwitchInstance(mainConnection, description, factory, featuresReply.getDatapathId());
-			
+
 			// set switch information
 			// set features reply and channel first so we a DPID and
 			// channel info.
@@ -1040,7 +1041,7 @@ public class OFSwitchHandshakeHandler implements IOFConnectionListener {
 			if (portDescStats != null) {
 				sw.setPortDescStats(portDescStats);
 			}
-			
+
 			/*
 			 * Need to add after setting the features.
 			 */
@@ -1079,13 +1080,13 @@ public class OFSwitchHandshakeHandler implements IOFConnectionListener {
 
 		@Override
 		/**
-		 * Accumulate a list of the OFTableFeaturesStatsReply's until there 
-		 * are no more remaining. Then, pass the list to the switch for 
+		 * Accumulate a list of the OFTableFeaturesStatsReply's until there
+		 * are no more remaining. Then, pass the list to the switch for
 		 * parsing and configuration.
-		 * 
+		 *
 		 * The assumption is that the OFMessage dispatcher will call this each
 		 * time, which it does. We don't loop and receive here.
-		 * 
+		 *
 		 * @param m, The potential OFTableFeaturesStatsReply message we want to include
 		 */
 		void processOFStatsReply(OFStatsReply m) {
@@ -1094,7 +1095,7 @@ public class OFSwitchHandshakeHandler implements IOFConnectionListener {
 				if (!((OFTableFeaturesStatsReply)m).getFlags().contains(OFStatsReplyFlags.REPLY_MORE)) {
 					handleTableFeaturesMessage(replies, false);
 					nextState();
-				} 
+				}
 			} else {
 				/* should only receive TABLE_FEATURES here */
 				log.error("Received {} message but expected TABLE_FEATURES.", m.getStatsType().toString());
@@ -1106,8 +1107,8 @@ public class OFSwitchHandshakeHandler implements IOFConnectionListener {
 		void processOFError(OFErrorMsg m) {
 			if ((m.getErrType() == OFErrorType.BAD_REQUEST) &&
 					((((OFBadRequestErrorMsg)m).getCode() == OFBadRequestCode.MULTIPART_BUFFER_OVERFLOW)
-							|| ((OFBadRequestErrorMsg)m).getCode() == OFBadRequestCode.BAD_STAT)) { 
-				log.warn("Switch {} is {} but does not support OFTableFeaturesStats. Assuming all tables can perform any match, action, and instruction in the spec.", 
+							|| ((OFBadRequestErrorMsg)m).getCode() == OFBadRequestCode.BAD_STAT)) {
+				log.warn("Switch {} is {} but does not support OFTableFeaturesStats. Assuming all tables can perform any match, action, and instruction in the spec.",
 						sw.getId().toString(), sw.getOFFactory().getVersion().toString());
 			} else {
 				log.error("Received unexpected OFErrorMsg {} on switch {}.", m.toString(), sw.getId().toString());
@@ -1335,9 +1336,9 @@ public class OFSwitchHandshakeHandler implements IOFConnectionListener {
 			if(OFSwitchManager.switchInitialRole != null)
 				if(OFSwitchManager.switchInitialRole.containsKey(mainConnection.getDatapathId())){
 					role = OFSwitchManager.switchInitialRole.get(mainConnection.getDatapathId());
-					log.info("Defining switch role from config file: {}", role);				
-				}	
-			sendRoleRequest(role);			
+					log.info("Defining switch role from config file: {}", role);
+				}
+			sendRoleRequest(role);
 		}
 	}
 
@@ -1380,7 +1381,7 @@ public class OFSwitchHandshakeHandler implements IOFConnectionListener {
 
 			/*
 			 * We also need a barrier between adding flows and notifying modules of the
-			 * transition to master. Some modules might modify the flow tables and expect 
+			 * transition to master. Some modules might modify the flow tables and expect
 			 * the clear/default flow operations above to have completed.
 			 */
 			sendBarrier();
@@ -1433,18 +1434,18 @@ public class OFSwitchHandshakeHandler implements IOFConnectionListener {
 		void processOFRoleRequest(OFRoleRequest m) {
 			sendRoleRequest(m);
 		}
-		
+
 		@Override
 		void processOFRoleStatus(OFRoleStatus m) {
 			/**
 			 *  Tulio Ribeiro
-			 *  
-			 *  Controller roles. 
-			 *  enum ofp_controller_role { 
-			 *  OFPCR_ROLE_NOCHANGE = 	0, Don't change current role. 
-			 *  OFPCR_ROLE_EQUAL = 		1, Default role, full access. 
-			 *  OFPCR_ROLE_MASTER = 	2, Full access, at most one master. 
-			 *  OFPCR_ROLE_SLAVE = 		3, Read-only access. 
+			 *
+			 *  Controller roles.
+			 *  enum ofp_controller_role {
+			 *  OFPCR_ROLE_NOCHANGE = 	0, Don't change current role.
+			 *  OFPCR_ROLE_EQUAL = 		1, Default role, full access.
+			 *  OFPCR_ROLE_MASTER = 	2, Full access, at most one master.
+			 *  OFPCR_ROLE_SLAVE = 		3, Read-only access.
 			 *  };
 			 */
 			//log.info("Processing roleStatus from MasterState...");
@@ -1476,7 +1477,7 @@ public class OFSwitchHandshakeHandler implements IOFConnectionListener {
 				log.error("Attempted to change to invalid Nicira role {}.", m.getRole().toString());
 				return;
 			}
-			/* 
+			/*
 			 * This will get converted back to the correct factory of the switch later.
 			 * We will use OFRoleRequest though to simplify the API between OF versions.
 			 */
@@ -1579,18 +1580,18 @@ public class OFSwitchHandshakeHandler implements IOFConnectionListener {
 		void processOFRoleRequest(OFRoleRequest m) {
 			sendRoleRequest(m);
 		}
-		
+
 		@Override
 		void processOFRoleStatus(OFRoleStatus m) {
 			/**
 			 *  Tulio Ribeiro
-			 *  
-			 *  Controller roles. 
-			 *  enum ofp_controller_role { 
-			 *  OFPCR_ROLE_NOCHANGE = 	0, Don't change current role. 
-			 *  OFPCR_ROLE_EQUAL = 		1, Default role, full access. 
-			 *  OFPCR_ROLE_MASTER = 	2, Full access, at most one master. 
-			 *  OFPCR_ROLE_SLAVE = 		3, Read-only access. 
+			 *
+			 *  Controller roles.
+			 *  enum ofp_controller_role {
+			 *  OFPCR_ROLE_NOCHANGE = 	0, Don't change current role.
+			 *  OFPCR_ROLE_EQUAL = 		1, Default role, full access.
+			 *  OFPCR_ROLE_MASTER = 	2, Full access, at most one master.
+			 *  OFPCR_ROLE_SLAVE = 		3, Read-only access.
 			 *  };
 			 */
 			OFControllerRole role = m.getRole();
@@ -1621,7 +1622,7 @@ public class OFSwitchHandshakeHandler implements IOFConnectionListener {
 				log.error("Attempted to change to invalid Nicira role {}.", m.getRole().toString());
 				return;
 			}
-			/* 
+			/*
 			 * This will get converted back to the correct factory of the switch later.
 			 * We will use OFRoleRequest though to simplify the API between OF versions.
 			 */

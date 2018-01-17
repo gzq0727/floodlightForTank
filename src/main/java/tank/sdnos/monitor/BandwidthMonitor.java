@@ -2,17 +2,25 @@ package tank.sdnos.monitor;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
+import org.projectfloodlight.openflow.types.DatapathId;
+import org.projectfloodlight.openflow.types.OFPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import net.floodlightcontroller.core.IFloodlightProviderService;
+import net.floodlightcontroller.core.internal.IOFSwitchService;
 import net.floodlightcontroller.core.module.FloodlightModuleContext;
 import net.floodlightcontroller.core.module.FloodlightModuleException;
 import net.floodlightcontroller.core.module.IFloodlightModule;
@@ -20,23 +28,32 @@ import net.floodlightcontroller.core.module.IFloodlightService;
 import net.floodlightcontroller.statistics.IStatisticsService;
 import net.floodlightcontroller.statistics.SwitchPortBandwidth;
 import net.floodlightcontroller.threadpool.IThreadPoolService;
+import tank.sdnos.monitor.CommonUse.NoDirectLink;
 import net.floodlightcontroller.core.types.NodePortTuple;
+import net.floodlightcontroller.linkdiscovery.ILinkDiscoveryService;
+import net.floodlightcontroller.linkdiscovery.Link;
+import net.floodlightcontroller.linkdiscovery.internal.LinkInfo;
 
 /**
  * 带宽获取模块
  *
  * @author gzq
- *
  */
 public class BandwidthMonitor implements IFloodlightModule, IBandwidthMonitor {
     private static final Logger log = LoggerFactory.getLogger(BandwidthMonitor.class);
     private static IStatisticsService statisticsService;
     // Floodllight实现的线程池，当然我们也可以使用Java自带的，但推荐使用这个
     private static IThreadPoolService threadPoolService;
+    private static ILinkDiscoveryService linkDiscoveryService;
+    private static IOFSwitchService ofSwitchService;
     // Future类，不明白的可以百度 Java现成future,其实C++11也有这个玩意了
     private static ScheduledFuture<?> bandwidthMonitor;
     private static Map<NodePortTuple, SwitchPortBandwidth> bandwidth;
-
+    private static Map<NoDirectLink, Long> allLinkSpeed = new HashMap<NoDirectLink, Long>();
+    private static Map<NoDirectLink, Float> allLinkUsage = new HashMap<NoDirectLink, Float>();
+    private static int TOP = 3;
+    private static LinkSpeed[] topNSpeedLinks = new LinkSpeed[TOP];
+    private static LinkUsage[] topNUsageLinks = new LinkUsage[TOP];
     /*
      * equals to net.floodlightcontroller.statistics.StatisticsCollector
      * .collectionIntervalPortStatsSeconds
@@ -74,6 +91,8 @@ public class BandwidthMonitor implements IFloodlightModule, IBandwidthMonitor {
     public void init(FloodlightModuleContext context) throws FloodlightModuleException {
         statisticsService = context.getServiceImpl(IStatisticsService.class);
         threadPoolService = context.getServiceImpl(IThreadPoolService.class);
+        ofSwitchService = context.getServiceImpl(IOFSwitchService.class);
+        linkDiscoveryService = context.getServiceImpl(ILinkDiscoveryService.class);
 
         Map<String, String> config = context
                 .getConfigParams(net.floodlightcontroller.statistics.StatisticsCollector.class);
@@ -120,12 +139,64 @@ public class BandwidthMonitor implements IFloodlightModule, IBandwidthMonitor {
      * Single thread for collecting switch statistics and containing the reply.
      */
     private class BandwidthUpdateThread extends Thread implements Runnable {
-
         @Override
         public void run() {
             bandwidth = statisticsService.getBandwidthConsumption();
-            log.info("tank# bandwidth size: {}", bandwidth.size());
-            log.info("tank# bandwidth: {}", bandwidth.toString());
+            Map<Link, LinkInfo> linksInfo = linkDiscoveryService.getLinks();
+
+            log.info("tank# the size of linksInfo is: {}", linksInfo.size());
+
+            /**
+             * the link speed and link usage is calculate in the unit of no
+             * direction link But if you want to calculate in direction link,
+             * you need to change the speed and usage calculate methods below
+             */
+            Set<NoDirectLink> noDirectLinks = new HashSet<NoDirectLink>();
+            noDirectLinks = CommonUse.getNoDirectionLinksSet(linksInfo);
+            log.info("tank# the size of noDirectLinks is: {}", noDirectLinks.size());
+
+            for (NoDirectLink link : noDirectLinks) {
+                DatapathId srcSw = link.getSrc();
+                DatapathId dstSw = link.getDst();
+                OFPort srcPort = link.getSrcPort();
+                OFPort dstPort = link.getDstPort();
+
+                NodePortTuple srcNode = new NodePortTuple(srcSw, srcPort);
+                NodePortTuple dstNode = new NodePortTuple(dstSw, dstPort);
+
+                Long srcPortSpeed = convertSwitchPortBandwidthToSpeed(bandwidth.get(srcNode));
+                Long dstPortSpeed = convertSwitchPortBandwidthToSpeed(bandwidth.get(dstNode));
+
+                if (srcPortSpeed != null && dstPortSpeed != null) {
+                    long linkSpeed = 0;
+                    /*
+                     * because the rx/tx speed in peer ports are not equal, so
+                     * will use the average as the link speed
+                     */
+                    linkSpeed = (srcPortSpeed + dstPortSpeed) / 2;
+                    allLinkSpeed.put(link, new Long(linkSpeed));
+
+                    long linkBandwidth = 0;
+                    long srcMaxPortSpeed = ofSwitchService.getSwitch(srcSw).getPort(srcPort).getMaxSpeed();
+                    long dstMaxPortSpeed = ofSwitchService.getSwitch(dstSw).getPort(dstPort).getMaxSpeed();
+                    if (srcMaxPortSpeed >= dstMaxPortSpeed) {
+                        linkBandwidth = dstMaxPortSpeed;
+                    } else {
+                        linkBandwidth = srcMaxPortSpeed;
+                    }
+
+                    float linkUsage = 0;
+                    linkUsage = linkBandwidth != 0 ? (linkSpeed / (float) linkBandwidth) : 0;
+                    allLinkUsage.put(link, new Float(linkUsage));
+                } else {
+                    /*
+                     * we did not cat the port speed , so we will it from the
+                     * Map
+                     */
+                    allLinkSpeed.remove(link);
+                    allLinkUsage.remove(link);
+                }
+            }
             testBandwidthMonitor();
         }
     }
@@ -146,43 +217,309 @@ public class BandwidthMonitor implements IFloodlightModule, IBandwidthMonitor {
     public Long getPortSpeed(NodePortTuple nodePortTuple) {
         SwitchPortBandwidth switchPortBand = bandwidth.get(nodePortTuple);
         Long bdwth = null;
-        if (switchPortBand != null) {
-            bdwth = (switchPortBand.getBitsPerSecondRx().getValue() + switchPortBand.getBitsPerSecondTx().getValue())
-                    / 1024 / 1024;
-            return bdwth;
-        }
+        bdwth = convertSwitchPortBandwidthToSpeed(switchPortBand);
         return bdwth;
     }
 
-    /* unit Mbits/s */
+    /* link related */
     @Override
-    public Long convertSwitchPortBandwidthToSpeed(SwitchPortBandwidth swtichPortBandwidth) {
+    public Long getNoDirectLinkSpeed(NoDirectLink noDirectLink){
+        return allLinkSpeed.get(noDirectLink);
+    }
+    @Override
+    public Long getNoDirectLinkSpeed(Link link) {
+        NoDirectLink noDirectLink = new NoDirectLink(link.getSrc(), link.getSrcPort(), link.getDst(),
+                link.getDstPort());
+        return allLinkSpeed.get(noDirectLink);
+    }
+
+    @Override
+    public Long getNoDirectLinkSpeed(DatapathId srcSw, int srcPort, DatapathId dstSw, int dstPort) {
+        NoDirectLink noDirectLink = new NoDirectLink(srcSw, OFPort.of(srcPort), dstSw, OFPort.of(dstPort));
+        return allLinkSpeed.get(noDirectLink);
+    }
+
+    @Override
+    public Map<NoDirectLink, Long> getAllNoDirectLinkSpeed() {
+        return allLinkSpeed;
+    }
+
+    @Override
+    public Float getNoDirectLinkUsage(NoDirectLink noDirectLink){
+        return allLinkUsage.get(noDirectLink);
+    }
+
+    @Override
+    public Float getNoDirectLinkUsage(Link link) {
+        NoDirectLink noDirectLink =  CommonUse.getNoDirectionLink(link);
+        return allLinkUsage.get(noDirectLink);
+    }
+
+    @Override
+    public Float getNoDirectLinkUsage(DatapathId srcSw, int srcPort, DatapathId dstSw, int dstPort) {
+        NoDirectLink noDirectLink = new NoDirectLink(srcSw, OFPort.of(srcPort), dstSw, OFPort.of(dstPort));
+        return allLinkUsage.get(noDirectLink);
+    }
+
+    @Override
+    public Map<NoDirectLink, Float> getAllNoDirectLinkUsage() {
+        return allLinkUsage;
+    }
+
+    /* unit Kbits/s */
+    private Long convertSwitchPortBandwidthToSpeed(SwitchPortBandwidth swtichPortBandwidth) {
         Long bdwth = null;
         if (swtichPortBandwidth != null) {
             bdwth = (swtichPortBandwidth.getBitsPerSecondRx().getValue()
-                    + swtichPortBandwidth.getBitsPerSecondTx().getValue()) / 1024 / 1024;
+                    + swtichPortBandwidth.getBitsPerSecondTx().getValue()) / 1024;
             return bdwth;
         }
         return bdwth;
     }
 
-    /**
-     * 获取带宽使用情况 需要简单的换算 根据
-     * switchPortBand.getBitsPerSecondRx().getValue()/(8*1024) +
-     * switchPortBand.getBitsPerSecondTx().getValue()/(8*1024) 计算带宽
+    @Override
+    public Long getMaxNoDirectLinkSpeed() {
+        long maxLinkSpeed = 0;
+        for (Link link : allLinkSpeed.keySet()) {
+            if (allLinkSpeed.get(link) > maxLinkSpeed) {
+                maxLinkSpeed = allLinkSpeed.get(link);
+            }
+        }
+        return maxLinkSpeed;
+    }
+
+    @Override
+    public Float getMaxNoDirectLinkUsage() {
+        float maxLinkUsage = 0;
+        for (Link link : allLinkUsage.keySet()) {
+            if (allLinkUsage.get(link) > maxLinkUsage) {
+                maxLinkUsage = allLinkUsage.get(link);
+            }
+        }
+
+        return maxLinkUsage;
+    }
+
+    @Override
+    public LinkSpeed getMaxNoDirectLinkSpeedDetail() {
+        long maxLinkSpeed = 0;
+        Link idealLink = null;
+        for (Link link : allLinkSpeed.keySet()) {
+            if (allLinkSpeed.get(link) >= maxLinkSpeed) {
+                maxLinkSpeed = allLinkSpeed.get(link);
+                idealLink = link;
+            }
+        }
+        if (idealLink != null) {
+            LinkSpeed linkStatis = new LinkSpeed(idealLink, maxLinkSpeed);
+            return linkStatis;
+        } else {
+            return null;
+        }
+    }
+
+    @Override
+    public LinkUsage getMaxNoDirectLinkUsageDetail() {
+        float maxLinkUsage = 0;
+        Link idealLink = null;
+        for (Link link : allLinkUsage.keySet()) {
+            if (allLinkUsage.get(link) >= maxLinkUsage) {
+                maxLinkUsage = allLinkUsage.get(link);
+                idealLink = link;
+            }
+        }
+        if (idealLink != null) {
+            LinkUsage linkStatis = new LinkUsage(idealLink, maxLinkUsage);
+            return linkStatis;
+        } else {
+            return null;
+        }
+    }
+
+    /*
+     * one class type to store the Link,linkSpeed or Link, linkUsage information
      */
+    public static class LinkSpeed {
+        private Link link;
+        private Long linkSpeed;
 
-    public void testBandwidthMonitor() {
-        Iterator<Entry<NodePortTuple, SwitchPortBandwidth>> iter = getBandwidthMap().entrySet().iterator();
-        while (iter.hasNext()) {
-            Entry<NodePortTuple, SwitchPortBandwidth> entry = iter.next();
-            NodePortTuple tuple = entry.getKey();
+        LinkSpeed(Link link, Long linkSpeed) {
+            this.link = link;
+            this.linkSpeed = linkSpeed;
+        }
 
-            SwitchPortBandwidth switchPortBand = getPortBandwidth(tuple);
-            String info = tuple.getNodeId() + "," + tuple.getPortId().getPortNumber() + ","
-                    + convertSwitchPortBandwidthToSpeed(switchPortBand) + " Mbits/s";
-            log.info("tank# sw port speed: {}", info);
+        public Link getLink() {
+            return link;
+        }
+
+        public void setLink(Link link) {
+            this.link = link;
+        }
+
+        public Long getLinkSpeed() {
+            return linkSpeed;
+        }
+
+        public void setLinkSpeed(Long linkSpeed) {
+            this.linkSpeed = linkSpeed;
+        }
+    }
+
+    public static class LinkUsage {
+        private Link link;
+        private Float linkUsage;
+
+        public LinkUsage(Link link, Float linkUsage) {
+            this.link = link;
+            this.linkUsage = linkUsage;
+        }
+
+        public Link getLink() {
+            return link;
+        }
+
+        public void setLink(Link link) {
+            this.link = link;
+        }
+
+        public Float getLinkUsage() {
+            return linkUsage;
+        }
+
+        public void setLinkUsage(Float linkUsage) {
+            this.linkUsage = linkUsage;
         }
 
     }
+
+    public void testBandwidthMonitor() {
+        LinkSpeed maxLinkSpeed = getMaxNoDirectLinkSpeedDetail();
+        if (maxLinkSpeed != null) {
+            log.info("tank# the max link speed is: {}", maxLinkSpeed.getLinkSpeed());
+        } else {
+            log.info("tank# max link speed is null");
+        }
+
+        LinkUsage maxLinkUsage = getMaxNoDirectLinkUsageDetail();
+        if (maxLinkUsage != null) {
+            log.info("tank# the max link usage is: {}", maxLinkUsage.getLinkUsage());
+        } else {
+            log.info("tank# max link usage is null");
+        }
+
+        LinkSpeed[] top3LinkSpeed = getTopNSpeedNoDirectLinks();
+        for (int i = 0; i < top3LinkSpeed.length; i++) {
+            if (top3LinkSpeed[i] != null) {
+                log.info("tank# top {} link speed is: {}", i + 1, top3LinkSpeed[i].getLinkSpeed());
+            }
+        }
+
+        LinkUsage[] top3LinkUsage = getTopNUsageNoDirectLinks();
+        for (int i = 0; i < top3LinkUsage.length; i++) {
+            if (top3LinkUsage[i] != null) {
+                log.info("tank# top {} link usage is: {}", i + 1, top3LinkUsage[i].getLinkUsage());
+            }
+        }
+    }
+
+    /**
+     * return the top N linkstatis of max link speed
+     */
+    @Override
+    public LinkSpeed[] getTopNSpeedNoDirectLinks() {
+        // TODO Auto-generated method stub
+        List<Entry<NoDirectLink, Long>> sortedList = CommonUse.sortByValue(allLinkSpeed);
+        int i = 0;
+
+        try {
+            for (i = 0; i < TOP; i++) {
+                Entry<NoDirectLink, Long> link = sortedList.get(i);
+                LinkSpeed linkStatis = new LinkSpeed(link.getKey(), link.getValue());
+                topNSpeedLinks[i] = linkStatis;
+            }
+
+        } catch (IndexOutOfBoundsException e) {
+            for (int j = i; j < TOP; j++) {
+                topNSpeedLinks[j] = null;
+            }
+        }
+
+        return topNSpeedLinks;
+    }
+
+    /**
+     * return the top N linkStatis of max link usage
+     */
+    @Override
+    public LinkUsage[] getTopNUsageNoDirectLinks() {
+        // TODO Auto-generated method stub
+        List<Entry<NoDirectLink, Float>> sortedList = CommonUse.sortByValue(allLinkUsage);
+        int i = 0;
+
+        try {
+            for (i = 0; i < TOP; i++) {
+                Entry<NoDirectLink, Float> link = sortedList.get(i);
+                LinkUsage linkStatis = new LinkUsage(link.getKey(), link.getValue());
+                topNUsageLinks[i] = linkStatis;
+            }
+
+        } catch (IndexOutOfBoundsException e) {
+            for (int j = i; j < TOP; j++) {
+                topNUsageLinks[j] = null;
+            }
+        }
+
+        return topNUsageLinks;
+    }
+
+    @Override
+    public Long getDirectLinkSpeed(Link link) {
+        // TODO Auto-generated method stub
+
+        DatapathId srcSw = link.getSrc();
+        DatapathId dstSw = link.getDst();
+        OFPort srcPort = link.getSrcPort();
+        OFPort dstPort = link.getDstPort();
+        NodePortTuple srcNodePort = new NodePortTuple(srcSw, srcPort);
+        NodePortTuple dstNodePort = new NodePortTuple(dstSw, dstPort);
+        SwitchPortBandwidth srcPortBandwitdh = bandwidth.get(srcNodePort);
+        SwitchPortBandwidth dstPortBandwitdh = bandwidth.get(dstNodePort);
+
+        if (srcPortBandwitdh != null && dstPortBandwitdh != null) {
+            Long speed = (srcPortBandwitdh.getBitsPerSecondTx().getValue()
+                    + dstPortBandwitdh.getBitsPerSecondRx().getValue()) / 2;
+            return speed;
+        } else {
+            return null;
+        }
+    }
+
+    @Override
+    public Long getDirectLinkSpeed(DatapathId srcSw, int srcPort, DatapathId dstSw, int dstPort) {
+        // TODO Auto-generated method stub
+        NodePortTuple srcNodePort = new NodePortTuple(srcSw, OFPort.of(srcPort));
+        NodePortTuple dstNodePort = new NodePortTuple(dstSw, OFPort.of(dstPort));
+        SwitchPortBandwidth srcPortBandwitdh = bandwidth.get(srcNodePort);
+        SwitchPortBandwidth dstPortBandwitdh = bandwidth.get(dstNodePort);
+
+        if (srcPortBandwitdh != null && dstPortBandwitdh != null) {
+            Long speed = (srcPortBandwitdh.getBitsPerSecondTx().getValue()
+                    + dstPortBandwitdh.getBitsPerSecondRx().getValue()) / 2;
+            return speed;
+        } else {
+            return null;
+        }
+    }
+
+    @Override
+    public Map<Link, Long> getAllDirectLinkSpeed() {
+        // TODO Auto-generated method stuba
+        Map<Link, Long> linksSpeed = new HashMap<Link, Long>();
+        Map<Link, LinkInfo> linksInfo = linkDiscoveryService.getLinks();
+        for (Link link : linksInfo.keySet()) {
+            linksSpeed.put(link, getDirectLinkSpeed(link));
+        }
+        return linksSpeed;
+    }
+
 }
