@@ -591,7 +591,7 @@ IFloodlightModule, IInfoProvider {
 				IFloodlightProviderService.CONTEXT_PI_PAYLOAD);
 		OFPort inPort = (pi.getVersion().compareTo(OFVersion.OF_12) < 0 ? pi.getInPort() : pi.getMatch().get(MatchField.IN_PORT));
 		if (eth.getPayload() instanceof BSN) {
-			log.info("tank# BSN");
+			log.debug("tank# BSN");
 			BSN bsn = (BSN) eth.getPayload();
 			if (bsn == null) return Command.STOP;
 			if (bsn.getPayload() == null) return Command.STOP;
@@ -601,10 +601,10 @@ IFloodlightModule, IInfoProvider {
 				return Command.CONTINUE;
 			return handleLldp((LLDP) bsn.getPayload(), sw, inPort, false, cntx);
 		} else if (eth.getPayload() instanceof LLDP) {
-			log.info("tank# normal LLDP");
+			log.debug("tank# normal LLDP");
 			return handleLldp((LLDP) eth.getPayload(), sw, inPort, true, cntx);
 		} else if (eth.getEtherType().getValue() < 1536 && eth.getEtherType().getValue() >= 17) {
-			log.info("tank# not BSN and lldp");
+			log.debug("tank# not BSN and lldp");
 			long destMac = eth.getDestinationMACAddress().getLong();
 			if ((destMac & LINK_LOCAL_MASK) == LINK_LOCAL_VALUE) {
 				ctrLinkLocalDrops.increment();
@@ -712,12 +712,12 @@ IFloodlightModule, IInfoProvider {
 		}
 
 		if (myLLDP == false) {
-			log.info("tank# this is not my LLDP");
+			log.debug("tank# this is not my LLDP");
 			// This is not the LLDP sent by this controller.
 			// If the LLDP message has multicast bit set, then we need to
 			// broadcast the packet as a regular packet (after checking IDs)
 			if (isStandard) {
-				log.info("tank# not my lldp  standard");
+				log.debug("tank# not my lldp  standard");
 				if (log.isTraceEnabled()) {
 					log.trace("Got a standard LLDP=[{}] that was not sent by" +
 							" this controller. Not fowarding it.", lldp.toString());
@@ -730,7 +730,7 @@ IFloodlightModule, IInfoProvider {
 				}
 				return Command.CONTINUE;
 			}
-			log.info("tank# not my lldp stop");
+			log.debug("tank# not my lldp stop");
 			return Command.STOP;
 		}
 
@@ -834,7 +834,7 @@ IFloodlightModule, IInfoProvider {
 							isStandard, true);
 				}
 			}else {
-				log.info("tank# reserve link exist");
+				log.debug("tank# reserve link exist");
 			}
 		}
 
@@ -865,7 +865,6 @@ IFloodlightModule, IInfoProvider {
 
 		// Consume this message
 		ctrLldpEol.increment();
-		log.info("tank# lldp handler over");
 		return Command.STOP;
 	}
 

@@ -16,6 +16,7 @@ import org.projectfloodlight.openflow.protocol.*;
 import org.projectfloodlight.openflow.protocol.match.Match;
 import org.projectfloodlight.openflow.protocol.ver13.OFMeterSerializerVer13;
 import org.projectfloodlight.openflow.types.DatapathId;
+import org.projectfloodlight.openflow.types.OFGroup;
 import org.projectfloodlight.openflow.types.OFPort;
 import org.projectfloodlight.openflow.types.TableId;
 import org.projectfloodlight.openflow.types.U64;
@@ -324,7 +325,7 @@ public class StatisticsCollector implements IFloodlightModule, IStatisticsServic
 	 * @param statsType
 	 * @return
 	 */
-	private Map<DatapathId, List<OFStatsReply>> getSwitchStatistics(Set<DatapathId> dpids, OFStatsType statsType) {
+	public Map<DatapathId, List<OFStatsReply>> getSwitchStatistics(Set<DatapathId> dpids, OFStatsType statsType) {
 		HashMap<DatapathId, List<OFStatsReply>> model = new HashMap<DatapathId, List<OFStatsReply>>();
 
 		List<GetStatisticsThread> activeThreads = new ArrayList<GetStatisticsThread>(dpids.size());
@@ -378,8 +379,9 @@ public class StatisticsCollector implements IFloodlightModule, IStatisticsServic
 	 * @param statsType
 	 * @return
 	 */
-	@SuppressWarnings("unchecked")
-	protected List<OFStatsReply> getSwitchStatistics(DatapathId switchId, OFStatsType statsType) {
+	@Override
+    @SuppressWarnings("unchecked")
+	public List<OFStatsReply> getSwitchStatistics(DatapathId switchId, OFStatsType statsType) {
 		IOFSwitch sw = switchService.getSwitch(switchId);
 		ListenableFuture<?> future;
 		List<OFStatsReply> values = null;
@@ -393,6 +395,7 @@ public class StatisticsCollector implements IFloodlightModule, IStatisticsServic
 						.setMatch(match)
 						.setOutPort(OFPort.ANY)
 						.setTableId(TableId.ALL)
+						.setOutGroup(OFGroup.ANY)
 						.build();
 				break;
 			case AGGREGATE:

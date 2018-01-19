@@ -6,6 +6,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.projectfloodlight.openflow.protocol.OFFlowStatsEntry;
+import org.projectfloodlight.openflow.protocol.OFGroupStatsEntry;
 import org.projectfloodlight.openflow.protocol.OFMeterConfig;
 import org.projectfloodlight.openflow.protocol.OFMeterFeatures;
 import org.projectfloodlight.openflow.protocol.OFMeterStats;
@@ -18,42 +19,41 @@ import net.floodlightcontroller.core.module.IFloodlightService;
 
 public interface ISwitchStatisticsCollector extends IFloodlightService {
 
-	public List<OFStatsReply> getSwitchStatistics(DatapathId switchId, OFStatsType statsType);
+    public List<OFStatsReply> getSwitchStatistics(DatapathId switchId, OFStatsType statsType);
 
-	public Map<DatapathId, List<OFStatsReply>> getSwitchsStatistics(Set<DatapathId> dpids, OFStatsType statsType);
+    public Map<DatapathId, List<OFStatsReply>> getSwitchsStatistics(Set<DatapathId> dpids, OFStatsType statsType);
 
-	/** meter features get **/
-	public OFMeterFeatures getMeterFeaturesStats(IOFSwitch sw);
+    /** meter features get **/
+    public List<OFMeterFeatures> getMeterFeaturesStats(DatapathId sw);
 
-	public Map<IOFSwitch, OFMeterFeatures> getMeterFeaturesStats(Set<IOFSwitch> sws);
+    public Map<DatapathId, List<OFMeterFeatures>> getMeterFeaturesStats(Set<DatapathId> sws);
 
-	/** meter stats get **/
-	public Map<IOFSwitch, List<OFMeterStats>> getMeterStats(Set<IOFSwitch> sws);
+    /** get meter entries in switches */
+    public Map<DatapathId, List<OFMeterStats>> getMeterStats(Set<DatapathId> sws);
 
-	public List<OFMeterStats> getMeterStats(IOFSwitch sw);
+    /** get meter entries in one switch */
+    public List<OFMeterStats> getMeterStats(DatapathId sw);
 
-	public OFMeterStats getMeterStats(IOFSwitch sw, int meterId);
+    /** meter stats get **/
+    public OFMeterStats getMeterStats(DatapathId sw, int meterId);
 
-	public Map<IOFSwitch, OFMeterStats> getMeterStats(Set<IOFSwitch> sws, int meterId);
+    /** get meter config in switch **/
+    public Map<DatapathId, List<OFMeterConfig>> getMeterConfig(Set<DatapathId> sws);
 
-	/** get meter config in switch **/
-	public Map<IOFSwitch, List<OFMeterConfig>> getMeter(Set<IOFSwitch> sws);
+    public List<OFMeterConfig> getMeterConfig(DatapathId sw);
 
-	public List<OFMeterConfig> getMeter(IOFSwitch sw);
+    public OFMeterConfig getMeterConfig(DatapathId sw, int meterId);
 
-	public OFMeterConfig getMeter(IOFSwitch sw, int meterId);
+    /** get flow entries in switches */
+    public Map<DatapathId, List<OFFlowStatsEntry>> getFlowStats(Set<DatapathId> sws);
 
-	public Map<IOFSwitch, OFMeterConfig> getMeter(Set<IOFSwitch> sws, int meterId);
+    /** get flow entries in one switch */
+    public List<OFFlowStatsEntry> getFlowStats(DatapathId sw);
 
-	/****/
-	public Map<IOFSwitch, List<OFFlowStatsEntry>> getFlowStats(Set<IOFSwitch> sws);
+    /** get group entries in switches */
+    public Map<DatapathId, List<OFGroupStatsEntry>> getGroupStats(Set<DatapathId> sws);
 
-	public List<OFFlowStatsEntry> getFlowStats(IOFSwitch sw);
+    /** get group entries in one switch */
+    public List<OFGroupStatsEntry> getGroupStats(DatapathId sw);
 
-	/** service setting **/
-	public void setMeterStatsInterval(long interval, TimeUnit unit);
-
-	public void stopMeterStats();
-
-	public void setUpdateInTime(boolean enable);
 }

@@ -175,7 +175,7 @@ public class PacketLossMonitor implements IFloodlightModule, IPacketLossMonitor 
             Map<Link, LinkInfo> linksInfo = linkDiscoveryService.getLinks();
             Set<NoDirectLink> noDirectLinks = new HashSet<NoDirectLink>();
             noDirectLinks = CommonUse.getNoDirectionLinksSet(linksInfo);
-            log.info("tank# the size of noDirectLinks is: {}", noDirectLinks.size());
+            log.debug("tank# the size of noDirectLinks is: {}", noDirectLinks.size());
 
             for (NoDirectLink noDirectLink : noDirectLinks) {
                 Long srcLossRate = DPID_PK_LOSS

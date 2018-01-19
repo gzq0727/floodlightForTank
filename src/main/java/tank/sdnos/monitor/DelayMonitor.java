@@ -176,7 +176,7 @@ public class DelayMonitor implements IFloodlightModule, IDelayMonitor {
 
             }
 
-            log.info("tank# the size of noDirectLinks is: {}", noDirectlinksDelay.size());
+            log.debug("tank# the size of noDirectLinks is: {}", noDirectlinksDelay.size());
 
             testDelayMonitor();
         }

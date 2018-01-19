@@ -53,6 +53,8 @@ import org.projectfloodlight.openflow.protocol.OFRequest;
 import org.projectfloodlight.openflow.protocol.OFStatsReply;
 import org.projectfloodlight.openflow.protocol.OFStatsReplyFlags;
 import org.projectfloodlight.openflow.protocol.OFStatsRequest;
+import org.projectfloodlight.openflow.protocol.OFStatsType;
+import org.projectfloodlight.openflow.protocol.OFType;
 import org.projectfloodlight.openflow.types.DatapathId;
 import org.projectfloodlight.openflow.types.OFAuxId;
 import org.projectfloodlight.openflow.types.U64;
@@ -151,9 +153,9 @@ public class OFConnection implements IOFConnection, IOFConnectionBackend{
 
 	/**
 	 * All write methods chain into this write() to use WriteMessageTask.
-	 * 
+	 *
 	 * Write the list of messages to the switch
-	 * 
+	 *
 	 * @param msgList list of messages to write
 	 * @return list of failed messages; can only fail if channel disconnected
 	 */
@@ -166,7 +168,7 @@ public class OFConnection implements IOFConnection, IOFConnectionBackend{
 						String.valueOf(msgList).substring(0, 80));
 			return IterableUtils.toCollection(msgList);
 		}
-		for (OFMessage m : msgList) {			
+		for (OFMessage m : msgList) {
 			if (logger.isTraceEnabled()) {
 				logger.trace("{}: send {}", this, m);
 				counters.updateWriteStats(m);
@@ -425,7 +427,7 @@ public class OFConnection implements IOFConnection, IOFConnectionBackend{
 		if (latency == null) {
 			logger.error("Latency must be non-null. Ignoring null latency value.");
 			return;
-		} else if (this.latency.equals(U64.ZERO)) { 
+		} else if (this.latency.equals(U64.ZERO)) {
 			logger.debug("Recording previously 0ms switch {} latency as {}ms", this.getDatapathId(), latency.getValue());
 			this.latency = latency;
 			return;

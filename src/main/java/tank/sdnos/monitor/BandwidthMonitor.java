@@ -144,7 +144,7 @@ public class BandwidthMonitor implements IFloodlightModule, IBandwidthMonitor {
             bandwidth = statisticsService.getBandwidthConsumption();
             Map<Link, LinkInfo> linksInfo = linkDiscoveryService.getLinks();
 
-            log.info("tank# the size of linksInfo is: {}", linksInfo.size());
+            log.debug("tank# the size of linksInfo is: {}", linksInfo.size());
 
             /**
              * the link speed and link usage is calculate in the unit of no
@@ -153,7 +153,7 @@ public class BandwidthMonitor implements IFloodlightModule, IBandwidthMonitor {
              */
             Set<NoDirectLink> noDirectLinks = new HashSet<NoDirectLink>();
             noDirectLinks = CommonUse.getNoDirectionLinksSet(linksInfo);
-            log.info("tank# the size of noDirectLinks is: {}", noDirectLinks.size());
+            log.debug("tank# the size of noDirectLinks is: {}", noDirectLinks.size());
 
             for (NoDirectLink link : noDirectLinks) {
                 DatapathId srcSw = link.getSrc();
@@ -395,16 +395,16 @@ public class BandwidthMonitor implements IFloodlightModule, IBandwidthMonitor {
     public void testBandwidthMonitor() {
         LinkSpeed maxLinkSpeed = getMaxNoDirectLinkSpeedDetail();
         if (maxLinkSpeed != null) {
-            log.info("tank# the max link speed is: {}", maxLinkSpeed.getLinkSpeed());
+            log.debug("tank# the max link speed is: {}", maxLinkSpeed.getLinkSpeed());
         } else {
-            log.info("tank# max link speed is null");
+            log.debug("tank# max link speed is null");
         }
 
         LinkUsage maxLinkUsage = getMaxNoDirectLinkUsageDetail();
         if (maxLinkUsage != null) {
-            log.info("tank# the max link usage is: {}", maxLinkUsage.getLinkUsage());
+            log.debug("tank# the max link usage is: {}", maxLinkUsage.getLinkUsage());
         } else {
-            log.info("tank# max link usage is null");
+            log.debug("tank# max link usage is null");
         }
 
         LinkSpeed[] top3LinkSpeed = getTopNSpeedNoDirectLinks();

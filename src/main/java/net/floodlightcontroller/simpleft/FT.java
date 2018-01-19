@@ -159,7 +159,7 @@ public class FT
     @Override
     public void switchAdded(DatapathId switchId) {
         // TODO Auto-generated method stub
-        logger.info("Switch added");
+        logger.debug("switch {} added",switchId);
     }
 
     @Override

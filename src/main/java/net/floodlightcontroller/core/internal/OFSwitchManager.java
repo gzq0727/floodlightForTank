@@ -226,7 +226,7 @@ public class OFSwitchManager implements IOFSwitchManager, INewOFConnectionListen
     public synchronized void switchStatusChanged(IOFSwitchBackend sw, SwitchStatus oldStatus, SwitchStatus newStatus) {
         DatapathId dpid = sw.getId();
         IOFSwitchBackend presentSw = switches.get(dpid);
-        log.info("tank# switch {} status changed from {} to {}",oldStatus.toString(),newStatus.toString());
+        log.info("tank# switch {} status changed from {} to {}",new String[]{sw.toString(),oldStatus.toString(),newStatus.toString()});
 
         if (presentSw != sw) {
             // Note == for object equality, not .equals for value

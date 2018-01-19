@@ -17,6 +17,8 @@ import org.projectfloodlight.openflow.protocol.OFFactory;
 import org.projectfloodlight.openflow.protocol.OFFlowStatsEntry;
 import org.projectfloodlight.openflow.protocol.OFFlowStatsReply;
 import org.projectfloodlight.openflow.protocol.OFFlowStatsRequest;
+import org.projectfloodlight.openflow.protocol.OFGroupStatsEntry;
+import org.projectfloodlight.openflow.protocol.OFGroupStatsReply;
 import org.projectfloodlight.openflow.protocol.OFMessage;
 import org.projectfloodlight.openflow.protocol.OFMeterConfig;
 import org.projectfloodlight.openflow.protocol.OFMeterConfigStatsReply;
@@ -31,6 +33,7 @@ import org.projectfloodlight.openflow.protocol.OFStatsType;
 import org.projectfloodlight.openflow.protocol.OFType;
 import org.projectfloodlight.openflow.protocol.OFVersion;
 import org.projectfloodlight.openflow.protocol.match.Match;
+import org.projectfloodlight.openflow.protocol.ver13.OFMeterSerializerVer13;
 import org.projectfloodlight.openflow.types.DatapathId;
 import org.projectfloodlight.openflow.types.OFGroup;
 import org.projectfloodlight.openflow.types.OFPort;
@@ -56,62 +59,14 @@ import net.floodlightcontroller.statistics.IStatisticsService;
 import net.floodlightcontroller.threadpool.IThreadPoolService;
 import tank.sdnos.qos.meter.IMeterService;
 
-public class SwitchStatisticsCollector
-        implements IFloodlightModule, IOFSwitchListener, ISwitchStatisticsCollector, IOFMessageListener {
+public class SwitchStatisticsCollector implements IFloodlightModule, ISwitchStatisticsCollector {
     private static final Logger log = LoggerFactory.getLogger(SwitchStatisticsCollector.class);
-    private final OFFactory factory = OFFactories.getFactory(OFVersion.OF_13);
-    private final static long METER_DEFAULT_COLLECT_TIME = 5; /*
-                                                               * meter stats
-                                                               * default collect
-                                                               * time 5 s
-                                                               */
-    private final static TimeUnit METER_COLLECT_DEFAULE_TIME_UNIT = TimeUnit.SECONDS; /*
-                                                                                       * defaule
-                                                                                       * time
-                                                                                       * unit
-                                                                                       */
 
-    private static IOFSwitchService switchService;
-    private static IMeterService meterService;
-    private IFloodlightProviderService floodlightProvider = null;
-    private IThreadPoolService threadPoolService = null;
-    private boolean enableUpdateInTime = true;
-    private ScheduledFuture<?> meterStatsCollector = null;
+    private IStatisticsService statisticsService;
     /*
      * will set the value euqals the collectionIntervalPortStatsSecond defined
      * in floodlightdefault.properties
      */
-    private static int replyTimeout = 5;
-    private long meterCollectInterval = 0;
-    private TimeUnit meterCollectTimeUnit = TimeUnit.SECONDS;
-    private Map<IOFSwitch, List<OFMeterStats>> switchsMeterStats = Collections.synchronizedMap(
-            new HashMap<IOFSwitch, List<OFMeterStats>>()); /*
-                                                            * store all switch
-                                                            * meter stats
-                                                            */
-    private Map<IOFSwitch, List<OFMeterConfig>> switchsMeter = Collections.synchronizedMap(
-            new HashMap<IOFSwitch, List<OFMeterConfig>>()); /*
-                                                             * store all switch
-                                                             * meter
-                                                             */
-
-    private Map<IOFSwitch, List<OFFlowStatsEntry>> switchsFlowStats = Collections.synchronizedMap(
-            new HashMap<IOFSwitch, List<OFFlowStatsEntry>>()); /*
-                                                                * store flow
-                                                                * entry stats
-                                                                */
-
-    private Map<IOFSwitch, Long> switchsMeterStatsXid = Collections.synchronizedMap(
-            new HashMap<IOFSwitch, Long>()); /* store meter stats latest xid */
-    private Map<IOFSwitch, Long> switchsMeterXid = Collections.synchronizedMap(
-            new HashMap<IOFSwitch, Long>()); /* store meter latest xid */
-    private Map<IOFSwitch, Long> switchsFlowStatsXid = Collections.synchronizedMap(
-            new HashMap<IOFSwitch, Long>()); /* store flow stats latest xid */
-
-    private Map<IOFSwitch, OFMeterFeatures> switchsMeterFeatures = Collections.synchronizedMap(
-            new HashMap<IOFSwitch, OFMeterFeatures>()); /*
-                                                         * store all switchs'
-                                                         */
 
     /**
      * Get statistics from a switch.
@@ -139,10 +94,8 @@ public class SwitchStatisticsCollector
     @Override
     public Collection<Class<? extends IFloodlightService>> getModuleDependencies() {
         Collection<Class<? extends IFloodlightService>> l = new ArrayList<Class<? extends IFloodlightService>>();
-        l.add(IOFSwitchService.class);
         l.add(IThreadPoolService.class);
         l.add(IStatisticsService.class);
-        l.add(IMeterService.class);
 
         l.add(IFloodlightProviderService.class);
         return l;
@@ -150,150 +103,20 @@ public class SwitchStatisticsCollector
 
     @Override
     public void init(FloodlightModuleContext context) throws FloodlightModuleException {
-        floodlightProvider = context.getServiceImpl(IFloodlightProviderService.class);
-        switchService = context.getServiceImpl(IOFSwitchService.class);
-        threadPoolService = context.getServiceImpl(IThreadPoolService.class);
-        meterService = context.getServiceImpl(IMeterService.class);
-        Map<String, String> config = context
-                .getConfigParams(net.floodlightcontroller.statistics.StatisticsCollector.class);
-
-        if (config.containsKey("collectionIntervalPortStatsSecond")) {
-            try {
-                replyTimeout = Integer.parseInt(config.get("collectionIntervalPortStatsSecond").trim());
-            } catch (Exception e) {
-                log.error(
-                        "tank# Could not parse collectionIntervalPortStatsSecond parameter in net.floodlightcontroller"
-                                + ".statistics.StatisticsCollector. replyTimeout will be set to default {}",
-                        replyTimeout);
-            }
-        }
-        log.info("tank# switch statistics reply timeout set to {}s", replyTimeout);
+        statisticsService = context.getServiceImpl(IStatisticsService.class);
     }
 
     @Override
     public void startUp(FloodlightModuleContext context) throws FloodlightModuleException {
         log.info("SwitchStatisticsCollector is in service");
-        floodlightProvider.addOFMessageListener(OFType.STATS_REPLY, this);
-        floodlightProvider.addOFMessageListener(OFType.METER_MOD, this);
-        floodlightProvider.addOFMessageListener(OFType.FLOW_MOD, this);
-        switchService.addOFSwitchListener(this);
-        meterStatsCollector = threadPoolService.getScheduledExecutor().scheduleAtFixedRate(new StatsCollector(), 0,
-                (meterCollectInterval == 0 ? METER_DEFAULT_COLLECT_TIME : meterCollectInterval),
-                (meterCollectInterval == 0 ? METER_COLLECT_DEFAULE_TIME_UNIT : meterCollectTimeUnit));
-    }
-
-    /**
-     * Single thread for collecting switch statistics and containing the reply.
-     */
-    private class GetStatisticsThread extends Thread {
-        private List<OFStatsReply> statsReply;
-        private DatapathId switchId;
-        private OFStatsType statType;
-
-        public GetStatisticsThread(DatapathId switchId, OFStatsType statType) {
-            this.switchId = switchId;
-            this.statType = statType;
-            this.statsReply = null;
-        }
-
-        public List<OFStatsReply> getStatisticsReply() {
-            return statsReply;
-        }
-
-        public DatapathId getSwitchId() {
-            return switchId;
-        }
-
-        @Override
-        public void run() {
-            statsReply = getSwitchStatistics(switchId, statType);
-        }
     }
 
     @SuppressWarnings("unchecked")
     @Override
     public List<OFStatsReply> getSwitchStatistics(DatapathId switchId, OFStatsType statsType) {
-        IOFSwitch sw = switchService.getSwitch(switchId);
-        ListenableFuture<?> future;
         List<OFStatsReply> values = null;
-        Match match;
-        if (sw != null) {
-            OFStatsRequest<?> req = null;
-            switch (statsType) {
-            case FLOW:
-                // TODO
-            case AGGREGATE:
-                match = sw.getOFFactory().buildMatch().build();
-                req = sw.getOFFactory().buildAggregateStatsRequest().setMatch(match).setOutPort(OFPort.ANY)
-                        .setTableId(TableId.ALL).build();
-                break;
-            case PORT:
-                req = sw.getOFFactory().buildPortStatsRequest().setPortNo(OFPort.ANY).build();
-                break;
-            case QUEUE:
-                req = sw.getOFFactory().buildQueueStatsRequest().setPortNo(OFPort.ANY)
-                        .setQueueId(UnsignedLong.MAX_VALUE.longValue()).build();
-                break;
-            case DESC:
-                req = sw.getOFFactory().buildDescStatsRequest().build();
-                break;
-            case GROUP:
-                if (sw.getOFFactory().getVersion().compareTo(OFVersion.OF_10) > 0) {
-                    req = sw.getOFFactory().buildGroupStatsRequest().build();
-                }
-                break;
+        values = statisticsService.getSwitchStatistics(switchId, statsType);
 
-            case METER:
-                // TODO
-
-            case GROUP_DESC:
-                if (sw.getOFFactory().getVersion().compareTo(OFVersion.OF_10) > 0) {
-                    req = sw.getOFFactory().buildGroupDescStatsRequest().build();
-                }
-                break;
-
-            case GROUP_FEATURES:
-                if (sw.getOFFactory().getVersion().compareTo(OFVersion.OF_10) > 0) {
-                    req = sw.getOFFactory().buildGroupFeaturesStatsRequest().build();
-                }
-                break;
-
-            case METER_CONFIG:
-                // TODO
-
-            case METER_FEATURES:
-                // TODO
-
-            case TABLE:
-                if (sw.getOFFactory().getVersion().compareTo(OFVersion.OF_10) > 0) {
-                    req = sw.getOFFactory().buildTableStatsRequest().build();
-                }
-                break;
-
-            case TABLE_FEATURES:
-                if (sw.getOFFactory().getVersion().compareTo(OFVersion.OF_10) > 0) {
-                    req = sw.getOFFactory().buildTableFeaturesStatsRequest().build();
-                }
-                break;
-            case PORT_DESC:
-                if (sw.getOFFactory().getVersion().compareTo(OFVersion.OF_13) >= 0) {
-                    req = sw.getOFFactory().buildPortDescStatsRequest().build();
-                }
-                break;
-            case EXPERIMENTER:
-            default:
-                log.error("Stats Request Type {} not implemented yet", statsType.name());
-                break;
-            }
-            try {
-                if (req != null) {
-                    future = sw.writeStatsRequest(req);
-                    values = (List<OFStatsReply>) future.get(replyTimeout / 2, TimeUnit.SECONDS);
-                }
-            } catch (Exception e) {
-                log.error("Failure retrieving statistics from switch {}. {}", sw, e);
-            }
-        }
         return values;
     }
 
@@ -306,337 +129,299 @@ public class SwitchStatisticsCollector
      */
     @Override
     public Map<DatapathId, List<OFStatsReply>> getSwitchsStatistics(Set<DatapathId> dpids, OFStatsType statsType) {
-        HashMap<DatapathId, List<OFStatsReply>> model = new HashMap<DatapathId, List<OFStatsReply>>();
-
-        List<GetStatisticsThread> activeThreads = new ArrayList<GetStatisticsThread>(dpids.size());
-        List<GetStatisticsThread> pendingRemovalThreads = new ArrayList<GetStatisticsThread>();
-        GetStatisticsThread t;
-        for (DatapathId d : dpids) {
-            t = new GetStatisticsThread(d, statsType);
-            activeThreads.add(t);
-            t.start();
-        }
-
-        /*
-         * Join all the threads after the timeout. Set a hard timeout of 12
-         * seconds for the threads to finish. If the thread has not finished the
-         * switch has not replied yet and therefore we won't add the switch's
-         * stats to the reply.
-         */
-        for (int iSleepCycles = 0; iSleepCycles < replyTimeout; iSleepCycles++) {
-            for (GetStatisticsThread curThread : activeThreads) {
-                if (curThread.getState() == State.TERMINATED) {
-                    model.put(curThread.getSwitchId(), curThread.getStatisticsReply());
-                    pendingRemovalThreads.add(curThread);
-                }
-            }
-
-            /*
-             * remove the threads that have completed the queries to the
-             * switches
-             */
-            for (GetStatisticsThread curThread : pendingRemovalThreads) {
-                activeThreads.remove(curThread);
-            }
-
-            /* clear the list so we don't try to double remove them */
-            pendingRemovalThreads.clear();
-
-            /* if we are done finish early */
-            if (activeThreads.isEmpty()) {
-                break;
-            }
-
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                log.error("Interrupted while waiting for statistics", e);
-            }
-        }
+        Map<DatapathId, List<OFStatsReply>> model = new HashMap<DatapathId, List<OFStatsReply>>();
+        model = statisticsService.getSwitchStatistics(dpids, statsType);
 
         return model;
     }
 
     @Override
-    public OFMeterFeatures getMeterFeaturesStats(IOFSwitch sw) {
-        return switchsMeterFeatures.get(sw);
-    }
+    public Map<DatapathId, List<OFFlowStatsEntry>> getFlowStats(Set<DatapathId> sws) {
+        Map<DatapathId, List<OFFlowStatsEntry>> flowStatsReplyEntry = new HashMap<DatapathId, List<OFFlowStatsEntry>>();
 
-    @Override
-    public Map<IOFSwitch, OFMeterFeatures> getMeterFeaturesStats(Set<IOFSwitch> sws) {
-        Map<IOFSwitch, OFMeterFeatures> rst = new HashMap<IOFSwitch, OFMeterFeatures>();
-        for (IOFSwitch sw : sws) {
-            rst.put(sw, switchsMeterFeatures.get(sw));
+        Map<DatapathId, List<OFStatsReply>> statsReply = getSwitchsStatistics(sws, OFStatsType.FLOW);
+        /* convert OFStatsReply to OFFlowStatsReply */
+        Map<DatapathId, List<OFFlowStatsReply>> flowStatsReply = new HashMap<DatapathId, List<OFFlowStatsReply>>();
+        for (DatapathId dpid : statsReply.keySet()) {
+            List<OFFlowStatsReply> flowStatsReplyList = new ArrayList<OFFlowStatsReply>();
+            for (OFStatsReply ofStatsReply : statsReply.get(dpid)) {
+                flowStatsReplyList.add((OFFlowStatsReply) ofStatsReply);
+            }
+            flowStatsReply.put(dpid, flowStatsReplyList);
         }
-        return rst;
-    }
-
-    @Override
-    public Map<IOFSwitch, List<OFMeterStats>> getMeterStats(Set<IOFSwitch> sws) {
-        Map<IOFSwitch, List<OFMeterStats>> rst = new HashMap<IOFSwitch, List<OFMeterStats>>();
-        for (IOFSwitch sw : sws) {
-            rst.put(sw, switchsMeterStats.get(sw));
+        /* get flow entrt from OFFlowStatsReply */
+        for (DatapathId dpid : flowStatsReply.keySet()) {
+            List<OFFlowStatsEntry> flowStatsEntryList = new ArrayList<OFFlowStatsEntry>();
+            for (OFFlowStatsReply ofStatsReply : flowStatsReply.get(dpid)) {
+                flowStatsEntryList.addAll(ofStatsReply.getEntries());
+            }
+            flowStatsReplyEntry.put(dpid, flowStatsEntryList);
         }
 
-        return rst;
+        return flowStatsReplyEntry;
     }
 
     @Override
-    public List<OFMeterStats> getMeterStats(IOFSwitch sw) {
-        return switchsMeterStats.get(sw);
+    public List<OFFlowStatsEntry> getFlowStats(DatapathId sw) {
+        List<OFFlowStatsEntry> flowStatsEntryList = new ArrayList<OFFlowStatsEntry>();
+
+        List<OFStatsReply> statsReply = getSwitchStatistics(sw, OFStatsType.FLOW);
+
+        List<OFFlowStatsReply> flowStatsReply = new ArrayList<OFFlowStatsReply>();
+
+        /* convert OFStatsReply to OFFlowStatsReply */
+        for (OFStatsReply ofStatsReply : statsReply) {
+            flowStatsReply.add((OFFlowStatsReply) ofStatsReply);
+        }
+
+        /* get flow entrt from OFFlowStatsReply */
+        for (OFFlowStatsReply sr : flowStatsReply) {
+            flowStatsEntryList.addAll(sr.getEntries());
+        }
+
+        return flowStatsEntryList;
     }
 
     @Override
-    public OFMeterStats getMeterStats(IOFSwitch sw, int meterId) {
-        for (OFMeterStats ofms : switchsMeterStats.get(sw)) {
-            if (ofms.getMeterId() == meterId) {
-                return ofms;
+    public Map<DatapathId, List<OFGroupStatsEntry>> getGroupStats(Set<DatapathId> sws) {
+        Map<DatapathId, List<OFGroupStatsEntry>> groupStatsReplyEntry = new HashMap<DatapathId, List<OFGroupStatsEntry>>();
+
+        Map<DatapathId, List<OFStatsReply>> statsReply = getSwitchsStatistics(sws, OFStatsType.GROUP);
+        /* convert OFStatsReply to OFFlowStatsReply */
+        Map<DatapathId, List<OFGroupStatsReply>> groupStatsReply = new HashMap<DatapathId, List<OFGroupStatsReply>>();
+        for (DatapathId dpid : statsReply.keySet()) {
+            List<OFGroupStatsReply> groupStatsReplyList = new ArrayList<OFGroupStatsReply>();
+            for (OFStatsReply ofStatsReply : statsReply.get(dpid)) {
+                groupStatsReplyList.add((OFGroupStatsReply) ofStatsReply);
+            }
+            groupStatsReply.put(dpid, groupStatsReplyList);
+        }
+        /* get flow entrt from OFFlowStatsReply */
+        for (DatapathId dpid : groupStatsReply.keySet()) {
+            List<OFGroupStatsEntry> groupStatsEntryList = new ArrayList<OFGroupStatsEntry>();
+            for (OFGroupStatsReply ofStatsReply : groupStatsReply.get(dpid)) {
+                groupStatsEntryList.addAll(ofStatsReply.getEntries());
+            }
+            groupStatsReplyEntry.put(dpid, groupStatsEntryList);
+        }
+
+        return groupStatsReplyEntry;
+    }
+
+    @Override
+    public List<OFGroupStatsEntry> getGroupStats(DatapathId sw) {
+        List<OFGroupStatsEntry> groupStatsEntryList = new ArrayList<OFGroupStatsEntry>();
+
+        List<OFStatsReply> statsReply = getSwitchStatistics(sw, OFStatsType.GROUP);
+
+        List<OFGroupStatsReply> groupStatsReply = new ArrayList<OFGroupStatsReply>();
+
+        /* convert OFStatsReply to OFFlowStatsReply */
+        for (OFStatsReply ofStatsReply : statsReply) {
+            groupStatsReply.add((OFGroupStatsReply) ofStatsReply);
+        }
+
+        /* get flow entrt from OFFlowStatsReply */
+        for (OFGroupStatsReply sr : groupStatsReply) {
+            groupStatsEntryList.addAll(sr.getEntries());
+        }
+
+        return groupStatsEntryList;
+    }
+
+    @Override
+    public Map<DatapathId, List<OFMeterStats>> getMeterStats(Set<DatapathId> sws) {
+        Map<DatapathId, List<OFMeterStats>> meterStats = new HashMap<DatapathId, List<OFMeterStats>>();
+        Map<DatapathId, List<OFMeterStatsReply>> meterStatsReply = new HashMap<DatapathId, List<OFMeterStatsReply>>();
+
+        Map<DatapathId, List<OFStatsReply>> statsReply = getSwitchsStatistics(sws, OFStatsType.METER);
+        if (statsReply == null) {
+            return null;
+        }
+
+        for (DatapathId dpid : statsReply.keySet()) {
+            List<OFMeterStatsReply> meterStatsEntryList = new ArrayList<OFMeterStatsReply>();
+            for (OFStatsReply ofStatsReply : statsReply.get(dpid)) {
+                meterStatsEntryList.add((OFMeterStatsReply) ofStatsReply);
+            }
+            meterStatsReply.put(dpid, meterStatsEntryList);
+        }
+
+        for (DatapathId dpid : meterStatsReply.keySet()) {
+            List<OFMeterStats> ms = new ArrayList<OFMeterStats>();
+            for (OFMeterStatsReply msr : meterStatsReply.get(dpid)) {
+                ms.addAll(msr.getEntries());
+            }
+            meterStats.put(dpid, ms);
+
+        }
+
+        return meterStats;
+    }
+
+    @Override
+    public List<OFMeterStats> getMeterStats(DatapathId sw) {
+        List<OFMeterStats> meterStatsEntryList = new ArrayList<OFMeterStats>();
+        List<OFMeterStatsReply> meterStatsReply = new ArrayList<OFMeterStatsReply>();
+
+        List<OFStatsReply> statsReply = getSwitchStatistics(sw, OFStatsType.METER);
+        if (statsReply == null) {
+            return null;
+        }
+
+        for (OFStatsReply ofStatsReply : statsReply) {
+            meterStatsReply.add((OFMeterStatsReply) ofStatsReply);
+        }
+
+        for (OFMeterStatsReply meterReply : meterStatsReply) {
+            meterStatsEntryList.addAll(meterReply.getEntries());
+        }
+
+        return meterStatsEntryList;
+    }
+
+    @Override
+    public OFMeterStats getMeterStats(DatapathId sw, int meterId) {
+        // TODO Auto-generated method stub
+        List<OFMeterStats> meterStats = getMeterStats(sw);
+        if (meterStats == null) {
+            return null;
+        }
+
+        for (OFMeterStats oneMeter : meterStats) {
+            if (oneMeter.getMeterId() == meterId) {
+                return oneMeter;
             }
         }
+
         return null;
     }
 
     @Override
-    public Map<IOFSwitch, OFMeterStats> getMeterStats(Set<IOFSwitch> sws, int meterId) {
-        Map<IOFSwitch, OFMeterStats> rst = new HashMap<IOFSwitch, OFMeterStats>();
-        for (IOFSwitch sw : sws) {
-            for (OFMeterStats ofms : switchsMeterStats.get(sw)) {
-                if (ofms.getMeterId() == meterId) {
-                    rst.put(sw, ofms);
-                }
+    public List<OFMeterFeatures> getMeterFeaturesStats(DatapathId sw) {
+        // TODO Auto-generated method stub
+
+        List<OFMeterFeatures> meterFeaturesStatsEntryList = new ArrayList<OFMeterFeatures>();
+        List<OFMeterFeaturesStatsReply> meterFeaturesStatsReply = new ArrayList<OFMeterFeaturesStatsReply>();
+
+        List<OFStatsReply> statsReply = getSwitchStatistics(sw, OFStatsType.METER_FEATURES);
+        if (statsReply == null) {
+            return null;
+        }
+
+        for (OFStatsReply ofStatsReply : statsReply) {
+            meterFeaturesStatsReply.add((OFMeterFeaturesStatsReply) ofStatsReply);
+        }
+
+        for (OFMeterFeaturesStatsReply meterFeaturesReply : meterFeaturesStatsReply) {
+            meterFeaturesStatsEntryList.add(meterFeaturesReply.getFeatures());
+        }
+
+        return meterFeaturesStatsEntryList;
+
+    }
+
+    @Override
+    public Map<DatapathId, List<OFMeterFeatures>> getMeterFeaturesStats(Set<DatapathId> sws) {
+        // TODO Auto-generated method stub
+        Map<DatapathId, List<OFMeterFeatures>> meterFeatures = new HashMap<DatapathId, List<OFMeterFeatures>>();
+        Map<DatapathId, List<OFMeterFeaturesStatsReply>> meterFeaturesStatsReply = new HashMap<DatapathId, List<OFMeterFeaturesStatsReply>>();
+
+        Map<DatapathId, List<OFStatsReply>> statsReply = getSwitchsStatistics(sws, OFStatsType.METER_FEATURES);
+        if (statsReply == null) {
+            return null;
+        }
+
+        for (DatapathId dpid : statsReply.keySet()) {
+            List<OFMeterFeaturesStatsReply> meterFeaturesStatsEntryList = new ArrayList<OFMeterFeaturesStatsReply>();
+            for (OFStatsReply ofStatsReply : statsReply.get(dpid)) {
+                meterFeaturesStatsEntryList.add((OFMeterFeaturesStatsReply) ofStatsReply);
+            }
+            meterFeaturesStatsReply.put(dpid, meterFeaturesStatsEntryList);
+        }
+
+        for (DatapathId dpid : meterFeaturesStatsReply.keySet()) {
+            List<OFMeterFeatures> mf = new ArrayList<OFMeterFeatures>();
+            for (OFMeterFeaturesStatsReply mfsr : meterFeaturesStatsReply.get(dpid)) {
+                mf.add(mfsr.getFeatures());
+            }
+            meterFeatures.put(dpid, mf);
+
+        }
+
+        return meterFeatures;
+    }
+
+    @Override
+    public Map<DatapathId, List<OFMeterConfig>> getMeterConfig(Set<DatapathId> sws) {
+        // TODO Auto-generated method stub
+
+        Map<DatapathId, List<OFMeterConfig>> meterConfig = new HashMap<DatapathId, List<OFMeterConfig>>();
+        Map<DatapathId, List<OFMeterConfigStatsReply>> meterConfigStatsReply = new HashMap<DatapathId, List<OFMeterConfigStatsReply>>();
+
+        Map<DatapathId, List<OFStatsReply>> statsReply = getSwitchsStatistics(sws, OFStatsType.METER_CONFIG);
+        if (statsReply == null) {
+            return null;
+        }
+
+        for (DatapathId dpid : statsReply.keySet()) {
+            List<OFMeterConfigStatsReply> meterFeaturesStatsEntryList = new ArrayList<OFMeterConfigStatsReply>();
+            for (OFStatsReply ofStatsReply : statsReply.get(dpid)) {
+                meterFeaturesStatsEntryList.add((OFMeterConfigStatsReply) ofStatsReply);
+            }
+            meterConfigStatsReply.put(dpid, meterFeaturesStatsEntryList);
+        }
+
+        for (DatapathId dpid : meterConfigStatsReply.keySet()) {
+            List<OFMeterConfig> mc = new ArrayList<OFMeterConfig>();
+            for (OFMeterConfigStatsReply mcsr : meterConfigStatsReply.get(dpid)) {
+                mc.addAll(mcsr.getEntries());
+            }
+            meterConfig.put(dpid, mc);
+
+        }
+
+        return meterConfig;
+    }
+
+    @Override
+    public List<OFMeterConfig> getMeterConfig(DatapathId sw) {
+        // TODO Auto-generated method stub
+
+        List<OFMeterConfig> meterConfigStatsEntryList = new ArrayList<OFMeterConfig>();
+        List<OFMeterConfigStatsReply> meterConfigStatsReply = new ArrayList<OFMeterConfigStatsReply>();
+
+        List<OFStatsReply> statsReply = getSwitchStatistics(sw, OFStatsType.METER_CONFIG);
+        if (statsReply == null) {
+            return null;
+        }
+
+        for (OFStatsReply ofStatsReply : statsReply) {
+            meterConfigStatsReply.add((OFMeterConfigStatsReply) ofStatsReply);
+        }
+
+        for (OFMeterConfigStatsReply meterConfigReply : meterConfigStatsReply) {
+            meterConfigStatsEntryList.addAll(meterConfigReply.getEntries());
+        }
+
+        return meterConfigStatsEntryList;
+    }
+
+    @Override
+    public OFMeterConfig getMeterConfig(DatapathId sw, int meterId) {
+        // TODO Auto-generated method stub
+        List<OFMeterConfig> meterConfig = getMeterConfig(sw);
+        if (meterConfig == null) {
+            return null;
+        }
+
+        for (OFMeterConfig mc : meterConfig) {
+            if (mc.getMeterId() == meterId) {
+                return mc;
             }
         }
-        return rst;
-    }
 
-    @Override
-    public Map<IOFSwitch, List<OFMeterConfig>> getMeter(Set<IOFSwitch> sws) {
-        Map<IOFSwitch, List<OFMeterConfig>> rst = new HashMap<IOFSwitch, List<OFMeterConfig>>();
-        for (IOFSwitch sw : sws) {
-            rst.put(sw, switchsMeter.get(sw));
-        }
-        return rst;
-    }
-
-    @Override
-    public List<OFMeterConfig> getMeter(IOFSwitch sw) {
-        return switchsMeter.get(sw);
-    }
-
-    @Override
-    public OFMeterConfig getMeter(IOFSwitch sw, int meterId) {
-        for (OFMeterConfig ofms : switchsMeter.get(sw)) {
-            if (ofms.getMeterId() == meterId) {
-                return ofms;
-            }
-        }
         return null;
     }
 
-    @Override
-    public Map<IOFSwitch, OFMeterConfig> getMeter(Set<IOFSwitch> sws, int meterId) {
-        Map<IOFSwitch, OFMeterConfig> rst = new HashMap<IOFSwitch, OFMeterConfig>();
-        for (IOFSwitch sw : sws) {
-            for (OFMeterConfig ofms : switchsMeter.get(sw)) {
-                if (ofms.getMeterId() == meterId) {
-                    rst.put(sw, ofms);
-                }
-            }
-        }
-        return rst;
-    }
-
-    @Override
-    public Map<IOFSwitch, List<OFFlowStatsEntry>> getFlowStats(Set<IOFSwitch> sws) {
-        Map<IOFSwitch, List<OFFlowStatsEntry>> map = new HashMap<IOFSwitch, List<OFFlowStatsEntry>>();
-        for (IOFSwitch sw : sws) {
-            map.put(sw, switchsFlowStats.get(sw));
-        }
-        return map;
-    }
-
-    @Override
-    public List<OFFlowStatsEntry> getFlowStats(IOFSwitch sw) {
-        return switchsFlowStats.get(sw);
-    }
-
-    @Override
-    public String getName() {
-        return this.getClass().getSimpleName();
-    }
-
-    @Override
-    public boolean isCallbackOrderingPrereq(OFType type, String name) {
-        return false;
-    }
-
-    @Override
-    public boolean isCallbackOrderingPostreq(OFType type, String name) {
-        return false;
-    }
-
-    @Override
-    public Command receive(IOFSwitch sw, OFMessage msg, FloodlightContext cntx) {
-        // Listening meter mod
-        if (msg.getType() == OFType.METER_MOD) {
-            if (enableUpdateInTime) {
-                sw.write(meterService.buildMeterStatsRequest());
-                sw.write(meterService.buildMeterConfigStatsRequest());
-            }
-            return Command.CONTINUE;
-        } else if (msg.getType() == OFType.FLOW_MOD) {
-            if (enableUpdateInTime) {
-                sw.write(buildFlowStatsRequest());
-            }
-            return Command.CONTINUE;
-        }
-
-        // Listening meter stats replay
-        OFStatsReply ofsr = (OFStatsReply) msg;
-        switch (ofsr.getStatsType()) {
-        case METER_FEATURES: // get meter features
-            OFMeterFeaturesStatsReply ofmfsr = (OFMeterFeaturesStatsReply) ofsr;
-            switchsMeterFeatures.put(sw, ofmfsr.getFeatures());
-            break;
-        case METER: // get all meter entry
-            OFMeterStatsReply ofmsr = (OFMeterStatsReply) ofsr;
-            if (ofmsr.getXid() == switchsMeterStatsXid.get(sw)) {
-                switchsMeterStats.get(sw).addAll(ofmsr.getEntries());
-            } else {
-                switchsMeterStatsXid.put(sw, ofmsr.getXid());
-                List<OFMeterStats> list = new LinkedList<OFMeterStats>();
-                list.addAll(ofmsr.getEntries());
-                switchsMeterStats.put(sw, list);
-            }
-            break;
-        case METER_CONFIG: // get all meter entry
-            OFMeterConfigStatsReply ofmcsr = (OFMeterConfigStatsReply) ofsr;
-            if (ofmcsr.getXid() == switchsMeterXid.get(sw)) {
-                switchsMeter.get(sw).addAll(ofmcsr.getEntries());
-            } else {
-                switchsMeterXid.put(sw, ofmcsr.getXid());
-                List<OFMeterConfig> list = new LinkedList<OFMeterConfig>();
-                list.addAll(ofmcsr.getEntries());
-                switchsMeter.put(sw, list);
-            }
-            break;
-        case FLOW: // get all flow stats
-            OFFlowStatsReply offsr = (OFFlowStatsReply) ofsr;
-            log.info("reply:"+offsr.toString());
-            if (offsr.getXid() == switchsMeterXid.get(sw)) {
-                switchsFlowStats.get(sw).addAll(offsr.getEntries());
-            } else {
-                switchsFlowStatsXid.put(sw, offsr.getXid());
-                List<OFFlowStatsEntry> list = new LinkedList<OFFlowStatsEntry>();
-                list.addAll(offsr.getEntries());
-                switchsFlowStats.put(sw, list);
-            }
-            break;
-        default:
-            return Command.CONTINUE;
-        }
-        return Command.STOP;
-    }
-
-    @Override
-    public void switchAdded(DatapathId switchId) {
-        switchsMeterStatsXid.put(switchService.getAllSwitchMap().get(switchId), (long) -1);
-        switchsMeterXid.put(switchService.getAllSwitchMap().get(switchId), (long) -1);
-        switchsFlowStatsXid.put(switchService.getAllSwitchMap().get(switchId), (long) -1);
-
-        switchService.getAllSwitchMap().get(switchId).write(meterService.buildMeterFeaturesStatsRequest());
-        switchService.getAllSwitchMap().get(switchId).write(meterService.buildMeterStatsRequest());
-        switchService.getAllSwitchMap().get(switchId).write(meterService.buildMeterConfigStatsRequest());
-        switchService.getAllSwitchMap().get(switchId).write(buildFlowStatsRequest());
-
-    }
-
-    @Override
-    public void switchRemoved(DatapathId switchId) {
-        switchsMeterFeatures.remove(switchService.getSwitch(switchId));
-        switchsMeterStats.remove(switchService.getSwitch(switchId));
-        switchsMeter.remove(switchService.getSwitch(switchId));
-        switchsFlowStats.remove(switchService.getSwitch(switchId));
-
-    }
-
-    @Override
-    public void switchActivated(DatapathId switchId) {
-        // TODO Auto-generated method stub
-
-    }
-
-    @Override
-    public void switchPortChanged(DatapathId switchId, OFPortDesc port, PortChangeType type) {
-        // TODO Auto-generated method stub
-
-    }
-
-    @Override
-    public void switchChanged(DatapathId switchId) {
-        // TODO Auto-generated method stub
-
-    }
-
-    @Override
-    public void switchDeactivated(DatapathId switchId) {
-        // TODO Auto-generated method stub
-
-    }
-
-    //////////////////////////////////////// flow stats
-    /**
-     * build flow stats request
-     *
-     * @return
-     */
-    private OFFlowStatsRequest buildFlowStatsRequest() {
-        Match match = factory.buildMatch().build();
-        return factory.buildFlowStatsRequest().setMatch(match).setOutPort(OFPort.ANY).setTableId(TableId.ALL)
-                .setOutGroup(OFGroup.ANY).build();
-    }
-
-    /* period to collect meter stats of switchs */
-    private class StatsCollector implements Runnable {
-
-        @Override
-        public void run() {
-            for (DatapathId dpid : switchService.getAllSwitchDpids()) {
-                switchService.getAllSwitchMap().get(dpid).write(buildFlowStatsRequest());
-                switchService.getAllSwitchMap().get(dpid).write(meterService.buildMeterStatsRequest());
-                switchService.getAllSwitchMap().get(dpid).write(meterService.buildMeterConfigStatsRequest());
-                log.info("Sending meter stats & config request to all enable switchs. Period:"
-                        + (meterCollectInterval == 0 ? METER_DEFAULT_COLLECT_TIME : meterCollectInterval) + ""
-                        + (meterCollectInterval == 0 ? METER_COLLECT_DEFAULE_TIME_UNIT : meterCollectTimeUnit));
-            }
-
-            log.info(switchsFlowStats.toString());
-        }
-    }
-
-    @Override
-    public void setMeterStatsInterval(long interval, TimeUnit unit) {
-        meterCollectInterval = interval;
-        meterCollectTimeUnit = unit;
-        log.info("set meter stats period: " + interval + "" + unit);
-        stopMeterStats();
-        log.info("restart meter stats thread");
-        meterStatsCollector = threadPoolService.getScheduledExecutor().scheduleAtFixedRate(new StatsCollector(), 0,
-                (meterCollectInterval == 0 ? METER_DEFAULT_COLLECT_TIME : meterCollectInterval),
-                (meterCollectInterval == 0 ? METER_COLLECT_DEFAULE_TIME_UNIT : meterCollectTimeUnit));
-    }
-
-    @Override
-    public void setUpdateInTime(boolean enable) {
-        enableUpdateInTime = enable;
-    }
-
-    @Override
-    public void stopMeterStats() {
-        if (!meterStatsCollector.cancel(false)) {
-            log.error("Could not cancel port stats thread");
-        } else {
-            log.warn("meter collection thread(s) stopped");
-        }
-    }
 }

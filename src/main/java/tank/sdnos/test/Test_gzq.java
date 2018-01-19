@@ -41,15 +41,16 @@ import net.floodlightcontroller.statistics.IStatisticsService;
 import net.floodlightcontroller.threadpool.IThreadPoolService;
 import net.floodlightcontroller.topology.ITopologyListener;
 import net.floodlightcontroller.topology.ITopologyService;
+import tank.sdnos.monitor.ISwitchStatisticsCollector;
 import tank.sdnos.utils.FlowUtils;
 
-/* test flow related operations */
-public class Test1 implements IFloodlightModule, IOFMessageListener, ITopologyListener {
+public class Test_gzq implements IFloodlightModule, IOFMessageListener, ITopologyListener {
     protected static final Logger logger = LoggerFactory.getLogger(Test1.class);
     protected IFloodlightProviderService floodlightProvider;
     protected IOFSwitchService switchService;
     protected IStatisticsService statisticsService;
     protected ITopologyService toplologyService;
+    protected ISwitchStatisticsCollector switchStatisticsCollector;
     static boolean is = false;
     static boolean executed = false;
     private IThreadPoolService threadPool;
@@ -77,6 +78,7 @@ public class Test1 implements IFloodlightModule, IOFMessageListener, ITopologyLi
         l.add(IThreadPoolService.class);
         l.add(ITopologyService.class);
         l.add(IStatisticsService.class);
+        l.add(ISwitchStatisticsCollector.class);
         return l;
     }
 
@@ -85,62 +87,58 @@ public class Test1 implements IFloodlightModule, IOFMessageListener, ITopologyLi
         floodlightProvider = context.getServiceImpl(IFloodlightProviderService.class);
         switchService = context.getServiceImpl(IOFSwitchService.class);
         statisticsService = context.getServiceImpl(IStatisticsService.class);
-        threadPool = context.getServiceImpl(IThreadPoolService.class);
-        toplologyService = context.getServiceImpl(ITopologyService.class);
+        switchStatisticsCollector = context.getServiceImpl(ISwitchStatisticsCollector.class);
     }
 
     @Override
     public void startUp(FloodlightModuleContext context) throws FloodlightModuleException {
+        Thread newTestThread = new Thread() {
+            @Override
+            public void run() {
+                try {
+                    Thread.sleep(5 * 1000);
+                } catch (InterruptedException e2) {
+                    // TODO Auto-generated catch block
+                    e2.printStackTrace();
+                }
+                IOFSwitch sw = switchService.getSwitch(DatapathId.of("00:00:00:00:00:00:00:01"));
 
-        toplologyService.addListener(this);
-//        try {
-//            Thread.sleep(5*1000);
-//        } catch (InterruptedException e2) {
-//            // TODO Auto-generated catch block
-//            e2.printStackTrace();
-//        }
-//        IOFSwitch sw = switchService.getSwitch(DatapathId.of("00:00:00:00:00:00:00:01"));
+                try {
+                    Thread.sleep(5 * 1000);
+                } catch (InterruptedException e1) {
+                    // TODO Auto-generated catch block
+                    e1.printStackTrace();
+                }
 
-       // statsService.setMeterStatsInterval(10, TimeUnit.SECONDS);
+                FlowUtils.addFlow(sw, "in_port=1", "output=2");
+                try {
+                    Thread.sleep(5 * 1000);
+                } catch (InterruptedException e1) {
+                    // TODO Auto-generated catch block
+                    e1.printStackTrace();
+                }
 
-//
-//        try {
-//            Thread.sleep(5*1000);
-//        } catch (InterruptedException e1) {
-//            // TODO Auto-generated catch block
-//            e1.printStackTrace();
-//        }
-//
-//
-//        FlowUtils.addFlow(sw, "in_port=1", "output=2");
-//        try {
-//            Thread.sleep(5*1000);
-//        } catch (InterruptedException e1) {
-//            // TODO Auto-generated catch block
-//            e1.printStackTrace();
-//        }
-//
-//        System.out.println(statisticsService.getSwitchStatistics(DatapathId.of("00:00:00:00:00:00:00:01"), OFStatsType.FLOW));
+                String reply = switchStatisticsCollector.getFlowStats(DatapathId.of("00:00:00:00:00:00:00:01"))
+                        .toString();
+                logger.info("tank# flows: {}", reply);
 
+                List<String> buckets = new ArrayList<String>();
+                buckets.add("output=1");
+                buckets.add("output=2");
+                FlowUtils.addAllGroup(sw, 1, buckets);
+                try {
+                    Thread.sleep(2 * 1000);
+                } catch (InterruptedException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
 
-//        System.out.print(statsService.getFlowStats(sw).toString());
-//
-//        List<String> buckets = new ArrayList<String>();
-//        buckets.add("output=1");
-//        buckets.add("output=2");
-//        FlowUtils.addAllGroup(sw, 1, buckets);
-//        try {
-//            Thread.sleep(2*1000);
-//        } catch (InterruptedException e) {
-//            // TODO Auto-generated catch block
-//            e.printStackTrace();
-//        }
+                reply = switchStatisticsCollector.getGroupStats(DatapathId.of("00:00:00:00:00:00:00:01")).toString();
+                logger.info("tank# groups: {}", reply);
+            }
+        };
 
-//        System.out.println(statsService.getSwitchStatistics(sw.getId(), OFStatsType.GROUP).toString());
-
-        // floodlightProvider.addOFMessageListener(OFType.FLOW_MOD, this);
-        // floodlightProvider.addOFMessageListener(OFType.STATS_REQUEST, this);
-        // floodlightProvider.addOFMessageListener(OFType.STATS_REPLY, this);
+        newTestThread.start();
 
     }
 

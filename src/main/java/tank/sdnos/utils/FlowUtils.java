@@ -29,6 +29,7 @@ import org.projectfloodlight.openflow.protocol.OFGroupAdd;
 import org.projectfloodlight.openflow.protocol.OFGroupBucket;
 import org.projectfloodlight.openflow.protocol.OFGroupDelete;
 import org.projectfloodlight.openflow.protocol.OFGroupModify;
+import org.projectfloodlight.openflow.protocol.OFGroupModify.Builder;
 import org.projectfloodlight.openflow.protocol.OFGroupType;
 import org.projectfloodlight.openflow.protocol.OFPacketIn;
 import org.projectfloodlight.openflow.protocol.OFVersion;
@@ -250,6 +251,9 @@ public class FlowUtils {
             case "output":
                 OFActionOutput.Builder ab3 = ofActions.buildOutput();
                 OFPort output_port = MatchUtils.portFromString(key_value[1]);
+                if (key_value[1].equals("controller")) {
+                    ab3.setMaxLen(65535);
+                }
                 ab3.setPort(output_port);
                 actionList.add(ab3.build());
                 break;
@@ -636,8 +640,25 @@ public class FlowUtils {
         return gb;
     }
 
-    public static boolean addAllGroup(IOFSwitch sw, int groupNumber, List<String> actionBuckets) {
-        OFGroupType gType = OFGroupType.ALL;
+    static OFGroupModify.Builder makeModifyGroupFlow(IOFSwitch sw, int groupNumber, OFGroupType groupType,
+            List<OFBucket> buckets) {
+        OFGroupModify.Builder gb = null;
+        gb = sw.getOFFactory().buildGroupModify();
+        gb.setGroup(OFGroup.of(groupNumber));
+        gb.setGroupType(groupType);
+        gb.setBuckets(buckets);
+
+        return gb;
+    }
+
+    static OFGroupDelete makeDelGroup(IOFSwitch sw, int groupNumber) {
+        OFGroupDelete.Builder delGroup = sw.getOFFactory().buildGroupDelete();
+        delGroup.setGroup(OFGroup.of(groupNumber));
+
+        return delGroup.build();
+    }
+
+    static List<OFBucket> makeAllGroupBuckets(IOFSwitch sw, List<String> actionBuckets) {
         List<OFBucket> buckets = new ArrayList<OFBucket>();
 
         for (String actionBucket : actionBuckets) {
@@ -647,16 +668,12 @@ public class FlowUtils {
             ofBucketBuilder.setWatchPort(OFPort.ANY);
             buckets.add(ofBucketBuilder.build());
         }
-        sw.write(makeGroupFlow(sw, groupNumber, gType, buckets).build());
 
-        return true;
+        return buckets;
+
     }
 
-    /*
-     * Map<String,String> actionBuckets : the key is action and value is weight
-     */
-    public static boolean addSelectGroup(IOFSwitch sw, int groupNumber, Map<String, String> actionBuckets) {
-        OFGroupType gType = OFGroupType.SELECT;
+    static List<OFBucket> makeSelectGroupBuckets(IOFSwitch sw, Map<String, String> actionBuckets) {
         List<OFBucket> buckets = new ArrayList<OFBucket>();
 
         for (String action : actionBuckets.keySet()) {
@@ -668,13 +685,12 @@ public class FlowUtils {
             ofBucketBuilder.setWeight(weight);
             buckets.add(ofBucketBuilder.build());
         }
-        sw.write(makeGroupFlow(sw, groupNumber, gType, buckets).build());
 
-        return true;
+        return buckets;
+
     }
 
-    public static boolean addIndirectGroup(IOFSwitch sw, int groupNumber, List<String> actionBuckets) {
-        OFGroupType gType = OFGroupType.INDIRECT;
+    static List<OFBucket> makeIndirectGroupBuckets(IOFSwitch sw, List<String> actionBuckets) {
         List<OFBucket> buckets = new ArrayList<OFBucket>();
 
         for (String actionBucket : actionBuckets) {
@@ -684,18 +700,13 @@ public class FlowUtils {
             ofBucketBuilder.setWatchPort(OFPort.ANY);
             buckets.add(ofBucketBuilder.build());
         }
-        sw.write(makeGroupFlow(sw, groupNumber, gType, buckets).build());
 
-        return true;
+        return buckets;
+
     }
 
-    /*
-     * Map<String,String> actionBuckets : the key is action and value is a
-     * string for watch port and group, but the format is such as
-     * watchPort=1,watchGroup=1
-     */
-    public static boolean addFfGroup(IOFSwitch sw, int groupNumber, Map<String, String> actionBuckets) {
-        OFGroupType gType = OFGroupType.FF;
+    static List<OFBucket> makeFfGroupBuckets(IOFSwitch sw, Map<String, String> actionBuckets) {
+
         List<OFBucket> buckets = new ArrayList<OFBucket>();
 
         for (String action : actionBuckets.keySet()) {
@@ -722,30 +733,93 @@ public class FlowUtils {
             buckets.add(ofBucketBuilder.build());
         }
 
+        return buckets;
+    }
+
+    public static boolean addAllGroup(IOFSwitch sw, int groupNumber, List<String> actionBuckets) {
+        OFGroupType gType = OFGroupType.ALL;
+        List<OFBucket> buckets = null;
+        buckets = makeAllGroupBuckets(sw, actionBuckets);
+
         sw.write(makeGroupFlow(sw, groupNumber, gType, buckets).build());
 
         return true;
     }
 
-    static OFGroupDelete makeDelGroup(IOFSwitch sw, int groupNumber) {
-        OFGroupDelete.Builder delGroup = sw.getOFFactory().buildGroupDelete();
-        delGroup.setGroup(OFGroup.of(groupNumber));
+    /*
+     * Map<String,String> actionBuckets : the key is action and value is weight
+     */
+    public static boolean addSelectGroup(IOFSwitch sw, int groupNumber, Map<String, String> actionBuckets) {
+        OFGroupType gType = OFGroupType.SELECT;
+        List<OFBucket> buckets = null;
+        buckets = makeSelectGroupBuckets(sw, actionBuckets);
 
-        return delGroup.build();
+        sw.write(makeGroupFlow(sw, groupNumber, gType, buckets).build());
+
+        return true;
     }
 
-    public static boolean modifyGroup(IOFSwitch sw, int groupNumber, String actionBucket) {
-        OFGroupModify.Builder modGroup = sw.getOFFactory().buildGroupModify();
-        modGroup.setGroup(OFGroup.of(groupNumber));
-        modGroup.setGroupType(OFGroupType.ALL);
+    public static boolean addIndirectGroup(IOFSwitch sw, int groupNumber, List<String> actionBuckets) {
+        OFGroupType gType = OFGroupType.INDIRECT;
+        List<OFBucket> buckets = null;
+        buckets = makeIndirectGroupBuckets(sw, actionBuckets);
 
-        List<OFBucket> buckets = new ArrayList<OFBucket>();
-        List<OFAction> actions = buildActions(sw, actionBucket);
-        buckets.add(sw.getOFFactory().buildBucket().setActions(actions).setWatchGroup(OFGroup.ANY)
-                .setWatchPort(OFPort.ANY).build());
+        sw.write(makeGroupFlow(sw, groupNumber, gType, buckets).build());
 
-        modGroup.setBuckets(buckets);
-        sw.write(modGroup.build());
+        return true;
+    }
+
+    /*
+     * Map<String,String> actionBuckets : the key is action and value is a
+     * string for watch port and group, but the format is such as
+     * watchPort=1,watchGroup=1
+     */
+    public static boolean addFfGroup(IOFSwitch sw, int groupNumber, Map<String, String> actionBuckets) {
+        OFGroupType gType = OFGroupType.FF;
+        List<OFBucket> buckets = null;
+        buckets = makeFfGroupBuckets(sw, actionBuckets);
+
+        sw.write(makeGroupFlow(sw, groupNumber, gType, buckets).build());
+
+        return true;
+    }
+
+    public static boolean modifyAllGroup(IOFSwitch sw, int groupNumber, List<String> actionBuckets) {
+        OFGroupType gType = OFGroupType.ALL;
+        List<OFBucket> buckets = null;
+        buckets = makeAllGroupBuckets(sw, actionBuckets);
+
+        sw.write(makeModifyGroupFlow(sw, groupNumber, gType, buckets).build());
+
+        return true;
+    }
+
+    public static boolean modifyIndirectGroup(IOFSwitch sw, int groupNumber, List<String> actionBuckets) {
+        OFGroupType gType = OFGroupType.INDIRECT;
+        List<OFBucket> buckets = null;
+        buckets = makeIndirectGroupBuckets(sw, actionBuckets);
+
+        sw.write(makeModifyGroupFlow(sw, groupNumber, gType, buckets).build());
+
+        return true;
+    }
+
+    public static boolean modifySelectGroup(IOFSwitch sw, int groupNumber, Map<String, String> actionBuckets) {
+        OFGroupType gType = OFGroupType.SELECT;
+        List<OFBucket> buckets = null;
+        buckets = makeSelectGroupBuckets(sw, actionBuckets);
+
+        sw.write(makeModifyGroupFlow(sw, groupNumber, gType, buckets).build());
+
+        return true;
+    }
+
+    public static boolean modifyFfGroup(IOFSwitch sw, int groupNumber, Map<String, String> actionBuckets) {
+        OFGroupType gType = OFGroupType.FF;
+        List<OFBucket> buckets = null;
+        buckets = makeFfGroupBuckets(sw, actionBuckets);
+
+        sw.write(makeModifyGroupFlow(sw, groupNumber, gType, buckets).build());
 
         return true;
     }
@@ -779,6 +853,12 @@ public class FlowUtils {
         delgroup.setGroupType(OFGroupType.SELECT);
         sw.write(delgroup.build());
 
+        delgroup.setGroupType(OFGroupType.INDIRECT);
+        sw.write(delgroup.build());
+
+        delgroup.setGroupType(OFGroupType.FF);
+        sw.write(delgroup.build());
+
         return true;
     }
 
@@ -788,14 +868,6 @@ public class FlowUtils {
         return false;
 
     }
-
-
-
-
-
-
-
-
 
     public static void main(String[] args) {
         FlowUtils flowUtils = new FlowUtils();
