@@ -31,6 +31,7 @@ net.floodlightcontroller.routing.RoutingManager
 net.floodlightcontroller.cpanalyzer.CPAnalyzer
 net.floodlightcontroller.hasupport.HAController
 tank.sdnos.monitor.SwitchStatisticsCollector
+tank.sdnos.monitor.EventMonitor
 tank.sdnos.monitor.BandwidthMonitor
 tank.sdnos.monitor.DelayMonitor
 tank.sdnos.monitor.PacketLossMonitor
