@@ -340,6 +340,8 @@ public class FlowUtils {
                 OFActionStripVlan ab25 = ofActions.stripVlan();
                 actionList.add(ab25);
                 break;
+            case "drop":
+                break;
             default:
                 throw new IllegalArgumentException("tank:unknown token " + key_value + " parsing " + actions);
             }
@@ -651,9 +653,25 @@ public class FlowUtils {
         return gb;
     }
 
-    static OFGroupDelete makeDelGroup(IOFSwitch sw, int groupNumber) {
+    static OFGroupDelete makeDelGroup(IOFSwitch sw, String groupType, int groupNumber) {
         OFGroupDelete.Builder delGroup = sw.getOFFactory().buildGroupDelete();
         delGroup.setGroup(OFGroup.of(groupNumber));
+        String gType = groupType.toLowerCase();
+        switch (gType) {
+        case "all":
+            delGroup.setGroupType(OFGroupType.ALL);
+            break;
+        case "select":
+            delGroup.setGroupType(OFGroupType.SELECT);
+            break;
+        case "indirect":
+            delGroup.setGroupType(OFGroupType.INDIRECT);
+            break;
+        case "ff":
+            delGroup.setGroupType(OFGroupType.FF);
+            break;
+
+        }
 
         return delGroup.build();
     }
@@ -824,8 +842,8 @@ public class FlowUtils {
         return true;
     }
 
-    public static boolean delGroup(IOFSwitch sw, int groupNumber) {
-        OFGroupDelete delGroup = makeDelGroup(sw, groupNumber);
+    public static boolean delGroup(IOFSwitch sw, String groupType, int groupNumber) {
+        OFGroupDelete delGroup = makeDelGroup(sw, groupType, groupNumber);
         sw.write(delGroup);
 
         return true;

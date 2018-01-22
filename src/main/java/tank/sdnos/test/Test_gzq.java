@@ -110,7 +110,7 @@ public class Test_gzq implements IFloodlightModule, IOFMessageListener, ITopolog
                     e1.printStackTrace();
                 }
 
-                FlowUtils.addFlow(sw, "in_port=1", "output=2");
+                //FlowUtils.addFlow(sw, "in_port=1", "output=2");
                 try {
                     Thread.sleep(5 * 1000);
                 } catch (InterruptedException e1) {
@@ -125,7 +125,7 @@ public class Test_gzq implements IFloodlightModule, IOFMessageListener, ITopolog
                 List<String> buckets = new ArrayList<String>();
                 buckets.add("output=1");
                 buckets.add("output=2");
-                FlowUtils.addAllGroup(sw, 1, buckets);
+                //FlowUtils.addAllGroup(sw, 1, buckets);
                 try {
                     Thread.sleep(2 * 1000);
                 } catch (InterruptedException e) {

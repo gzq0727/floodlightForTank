@@ -1,5 +1,6 @@
 package tank.sdnos.monitor;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -13,7 +14,6 @@ import org.projectfloodlight.openflow.types.OFPort;
 
 import net.floodlightcontroller.linkdiscovery.Link;
 import net.floodlightcontroller.linkdiscovery.internal.LinkInfo;
-import tank.sdnos.monitor.CommonUse.NoDirectLink;
 
 public class CommonUse {
 

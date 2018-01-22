@@ -18,10 +18,22 @@ public interface IBandwidthMonitor extends IFloodlightService {
 
     public SwitchPortBandwidth getPortBandwidth(NodePortTuple nodePortTuple);
 
-    /* unit Mbits/s */
+    /**
+     * get switch port speed in one switch the calculate method is speed =
+     * port.getBitsPerSecondRx + port.getBitsPerSecondTx
+     *
+     * @return the port speed in the unit of Mbps
+     */
     public Long getPortSpeed(NodePortTuple nodePortTuple);
 
     /* link related */
+    /**
+     * get the directional link speed the calculate method is:
+     * (srcPort.getBitsPerSecondTx().getValue() +
+     * dstPortBandwitdh.getBitsPerSecondRx().getValue()) / 2
+     * @param link
+     * @return
+     */
     public Long getDirectLinkSpeed(Link link);
 
     public Long getDirectLinkSpeed(DatapathId srcSw, int srcPort, DatapathId dstSw, int dstPort);
@@ -56,5 +68,13 @@ public interface IBandwidthMonitor extends IFloodlightService {
     public Float getNoDirectLinkUsage(NoDirectLink noDirectLink);
 
     public Long getNoDirectLinkSpeed(NoDirectLink noDirectLink);
+
+    public LinkUsage[] getAllDescendUsageNoDirectLinks();
+
+    public LinkSpeed[] getAllAscendSpeedNoDirectLinks();
+
+    public LinkSpeed[] getAllDescendSpeedNoDirectLinks();
+
+    public LinkUsage[] getAllAscendUsageNoDirectLinks();
 
 }

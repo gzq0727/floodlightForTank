@@ -1,7 +1,11 @@
 package tank.sdnos.monitor;
 
+import java.util.Map;
+
 import net.floodlightcontroller.core.module.IFloodlightService;
 import net.floodlightcontroller.linkdiscovery.Link;
+import tank.sdnos.monitor.CommonUse.NoDirectLink;
+import tank.sdnos.monitor.DelayMonitor.LatencyLet;
 import tank.sdnos.monitor.DelayMonitor.LinkDelay;
 
 public interface IDelayMonitor extends IFloodlightService {
@@ -15,6 +19,8 @@ public interface IDelayMonitor extends IFloodlightService {
     public Long getDirectLatency(String srcSw, String srcPort, String dstSw, String dstPort);
 
     public Long getDirectLatency(Link link);
+
+    public Map<Link, LatencyLet> getAllDirectLinkLatency();
 
     /* return the link current latency = the last latency measured */
     public Long getDirectCurrentLatency(String srcSw, String srcPort, String dstSw, String dstPort);
@@ -41,5 +47,11 @@ public interface IDelayMonitor extends IFloodlightService {
     public LinkDelay getMaxNoDirectLinkDelayDetail();
 
     public LinkDelay[] getTopNDelayNoDirectLinks();
+
+    public Map<NoDirectLink, LatencyLet> getAllNoDirectLinkLatency();
+
+    public LinkDelay[] getAllDescendDelayNoDirectLinks();
+
+    public LinkDelay[] getAllAscendDelayNoDirectLinks();
 
 }

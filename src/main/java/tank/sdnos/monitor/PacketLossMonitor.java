@@ -26,10 +26,12 @@ import net.floodlightcontroller.core.module.IFloodlightModule;
 import net.floodlightcontroller.core.module.IFloodlightService;
 import net.floodlightcontroller.threadpool.IThreadPoolService;
 import tank.sdnos.monitor.CommonUse.NoDirectLink;
+import tank.sdnos.monitor.web.LossMonitorRest;
 import net.floodlightcontroller.core.types.NodePortTuple;
 import net.floodlightcontroller.linkdiscovery.ILinkDiscoveryService;
 import net.floodlightcontroller.linkdiscovery.Link;
 import net.floodlightcontroller.linkdiscovery.internal.LinkInfo;
+import net.floodlightcontroller.restserver.IRestApiService;
 import net.floodlightcontroller.statistics.IStatisticsService;
 
 /**
@@ -45,6 +47,7 @@ public class PacketLossMonitor implements IFloodlightModule, IPacketLossMonitor 
     private static IThreadPoolService threadPoolService;
     private static ISwitchStatisticsCollector swStatisticsCollector;
     private static ILinkDiscoveryService linkDiscoveryService;
+    private static IRestApiService restApiService;
     private static ScheduledFuture<?> packetLossStatsCollector;
 
     private static volatile HashMap<NodePortTuple, Long> DPID_PK_LOSS = new HashMap<NodePortTuple, Long>();
@@ -52,7 +55,7 @@ public class PacketLossMonitor implements IFloodlightModule, IPacketLossMonitor 
     private static Map<NoDirectLink, Long> allNoDirectLinkLossRate = new HashMap<NoDirectLink, Long>();
 
     private static int TOP = 3;
-    private static LinkLoss[] TopNLossLinks = new LinkLoss[3];
+    private static volatile LinkLoss[] TopNLossLinks = new LinkLoss[3];
 
     private static int statsUpdateInterval = 5;
     private static boolean isEnabled = true;
@@ -78,6 +81,7 @@ public class PacketLossMonitor implements IFloodlightModule, IPacketLossMonitor 
         l.add(IThreadPoolService.class);
         l.add(ISwitchStatisticsCollector.class);
         l.add(IStatisticsService.class);
+        l.add(IRestApiService.class);
         return l;
     }
 
@@ -87,6 +91,8 @@ public class PacketLossMonitor implements IFloodlightModule, IPacketLossMonitor 
         threadPoolService = context.getServiceImpl(IThreadPoolService.class);
         swStatisticsCollector = context.getServiceImpl(ISwitchStatisticsCollector.class);
         linkDiscoveryService = context.getServiceImpl(ILinkDiscoveryService.class);
+        restApiService = context.getServiceImpl(IRestApiService.class);
+
         Map<String, String> config = context
                 .getConfigParams(net.floodlightcontroller.statistics.StatisticsCollector.class);
         if (config.containsKey("collectionIntervalPortStatsSecond")) {
@@ -115,6 +121,7 @@ public class PacketLossMonitor implements IFloodlightModule, IPacketLossMonitor 
     @Override
     public void startUp(FloodlightModuleContext context) throws FloodlightModuleException {
         if (isEnabled) {
+            restApiService.addRestletRoutable(new LossMonitorRest());
             startStatisticsCollection();
             log.info("tank# PacketLossMonitor is in service");
         }
@@ -252,6 +259,9 @@ public class PacketLossMonitor implements IFloodlightModule, IPacketLossMonitor 
 
     @Override
     public Map<NodePortTuple, Long> getAllPortPacketLossRate() {
+        if (DPID_PK_LOSS.size() == 0) {
+            return null;
+        }
         return DPID_PK_LOSS;
     }
 
@@ -259,6 +269,9 @@ public class PacketLossMonitor implements IFloodlightModule, IPacketLossMonitor 
     public LinkLoss[] getTopNLossLinks() {
         // TODO Auto-generated method stub
         List<Entry<NoDirectLink, Long>> sortedLinks = CommonUse.sortByValue(allNoDirectLinkLossRate);
+        if (sortedLinks.size() == 0) {
+            return null;
+        }
         int i = 0;
         try {
             for (i = 0; i < TOP; i++) {
@@ -274,6 +287,39 @@ public class PacketLossMonitor implements IFloodlightModule, IPacketLossMonitor 
         }
         return TopNLossLinks;
 
+    }
+
+    @Override
+    public LinkLoss[] getAllDescendLossNoDirectLinks() {
+        List<Entry<NoDirectLink, Long>> sortedLinks = CommonUse.sortByValue(allNoDirectLinkLossRate);
+        if (sortedLinks.size() == 0) {
+            return null;
+        }
+        LinkLoss[] descendNoDirectLinks = new LinkLoss[sortedLinks.size()];
+
+        for (int i = 0; i < sortedLinks.size(); i++) {
+            Entry<NoDirectLink, Long> link = sortedLinks.get(i);
+            LinkLoss lossLink = new LinkLoss(link.getKey(), link.getValue());
+            descendNoDirectLinks[i] = lossLink;
+        }
+        return descendNoDirectLinks;
+    }
+
+    @Override
+    public LinkLoss[] getAllAscendLossNoDirectLinks() {
+        List<Entry<NoDirectLink, Long>> sortedLinks = CommonUse.sortByValue(allNoDirectLinkLossRate);
+        if (sortedLinks.size() == 0) {
+            return null;
+        }
+        LinkLoss[] ascendNoDirectLinks = new LinkLoss[sortedLinks.size()];
+        int listLength = sortedLinks.size();
+
+        for (int i = listLength - 1; i >= 0; i--) {
+            Entry<NoDirectLink, Long> link = sortedLinks.get(i);
+            LinkLoss lossLink = new LinkLoss(link.getKey(), link.getValue());
+            ascendNoDirectLinks[listLength - i - 1] = lossLink;
+        }
+        return ascendNoDirectLinks;
     }
 
     @Override
@@ -325,5 +371,14 @@ public class PacketLossMonitor implements IFloodlightModule, IPacketLossMonitor 
         } else {
             return null;
         }
+    }
+
+    @Override
+    public Map<NoDirectLink, Long> getAllNoDirectLinkLossRate() {
+        // TODO Auto-generated method stub
+        if (allNoDirectLinkLossRate.size() == 0) {
+            return null;
+        }
+        return allNoDirectLinkLossRate;
     }
 }

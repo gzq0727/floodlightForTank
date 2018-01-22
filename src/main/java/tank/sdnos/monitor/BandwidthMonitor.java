@@ -28,11 +28,14 @@ import net.floodlightcontroller.core.module.IFloodlightService;
 import net.floodlightcontroller.statistics.IStatisticsService;
 import net.floodlightcontroller.statistics.SwitchPortBandwidth;
 import net.floodlightcontroller.threadpool.IThreadPoolService;
+import sun.rmi.runtime.Log;
 import tank.sdnos.monitor.CommonUse.NoDirectLink;
+import tank.sdnos.monitor.web.BandwidthMonitorRest;
 import net.floodlightcontroller.core.types.NodePortTuple;
 import net.floodlightcontroller.linkdiscovery.ILinkDiscoveryService;
 import net.floodlightcontroller.linkdiscovery.Link;
 import net.floodlightcontroller.linkdiscovery.internal.LinkInfo;
+import net.floodlightcontroller.restserver.IRestApiService;
 
 /**
  * 带宽获取模块
@@ -46,14 +49,16 @@ public class BandwidthMonitor implements IFloodlightModule, IBandwidthMonitor {
     private static IThreadPoolService threadPoolService;
     private static ILinkDiscoveryService linkDiscoveryService;
     private static IOFSwitchService ofSwitchService;
+    private static IRestApiService restApiService;
+
     // Future类，不明白的可以百度 Java现成future,其实C++11也有这个玩意了
     private static ScheduledFuture<?> bandwidthMonitor;
     private static Map<NodePortTuple, SwitchPortBandwidth> bandwidth;
     private static Map<NoDirectLink, Long> allLinkSpeed = new HashMap<NoDirectLink, Long>();
     private static Map<NoDirectLink, Float> allLinkUsage = new HashMap<NoDirectLink, Float>();
     private static int TOP = 3;
-    private static LinkSpeed[] topNSpeedLinks = new LinkSpeed[TOP];
-    private static LinkUsage[] topNUsageLinks = new LinkUsage[TOP];
+    private static volatile LinkSpeed[] topNSpeedLinks = new LinkSpeed[TOP];
+    private static volatile LinkUsage[] topNUsageLinks = new LinkUsage[TOP];
     /*
      * equals to net.floodlightcontroller.statistics.StatisticsCollector
      * .collectionIntervalPortStatsSeconds
@@ -83,6 +88,7 @@ public class BandwidthMonitor implements IFloodlightModule, IBandwidthMonitor {
         Collection<Class<? extends IFloodlightService>> l = new ArrayList<Class<? extends IFloodlightService>>();
         l.add(IStatisticsService.class);
         l.add(IThreadPoolService.class);
+        l.add(IRestApiService.class);
         return l;
     }
 
@@ -93,6 +99,7 @@ public class BandwidthMonitor implements IFloodlightModule, IBandwidthMonitor {
         threadPoolService = context.getServiceImpl(IThreadPoolService.class);
         ofSwitchService = context.getServiceImpl(IOFSwitchService.class);
         linkDiscoveryService = context.getServiceImpl(ILinkDiscoveryService.class);
+        restApiService = context.getServiceImpl(IRestApiService.class);
 
         Map<String, String> config = context
                 .getConfigParams(net.floodlightcontroller.statistics.StatisticsCollector.class);
@@ -122,9 +129,11 @@ public class BandwidthMonitor implements IFloodlightModule, IBandwidthMonitor {
     @Override
     public void startUp(FloodlightModuleContext context) throws FloodlightModuleException {
         if (isEnabled) {
+            restApiService.addRestletRoutable(new BandwidthMonitorRest());
             startBandwidthMonitor();
             log.info("tank# BandwidthMonitor is in service");
         }
+
     }
 
     // 自定义的开始收集数据的方法，使用了线程池，定周期的执行
@@ -175,7 +184,6 @@ public class BandwidthMonitor implements IFloodlightModule, IBandwidthMonitor {
                      */
                     linkSpeed = (srcPortSpeed + dstPortSpeed) / 2;
                     allLinkSpeed.put(link, new Long(linkSpeed));
-
                     long linkBandwidth = 0;
                     long srcMaxPortSpeed = ofSwitchService.getSwitch(srcSw).getPort(srcPort).getMaxSpeed();
                     long dstMaxPortSpeed = ofSwitchService.getSwitch(dstSw).getPort(dstPort).getMaxSpeed();
@@ -186,6 +194,7 @@ public class BandwidthMonitor implements IFloodlightModule, IBandwidthMonitor {
                     }
 
                     float linkUsage = 0;
+                    linkBandwidth = 35000000L;
                     linkUsage = linkBandwidth != 0 ? (linkSpeed / (float) linkBandwidth) : 0;
                     allLinkUsage.put(link, new Float(linkUsage));
                 } else {
@@ -223,9 +232,10 @@ public class BandwidthMonitor implements IFloodlightModule, IBandwidthMonitor {
 
     /* link related */
     @Override
-    public Long getNoDirectLinkSpeed(NoDirectLink noDirectLink){
+    public Long getNoDirectLinkSpeed(NoDirectLink noDirectLink) {
         return allLinkSpeed.get(noDirectLink);
     }
+
     @Override
     public Long getNoDirectLinkSpeed(Link link) {
         NoDirectLink noDirectLink = new NoDirectLink(link.getSrc(), link.getSrcPort(), link.getDst(),
@@ -241,17 +251,23 @@ public class BandwidthMonitor implements IFloodlightModule, IBandwidthMonitor {
 
     @Override
     public Map<NoDirectLink, Long> getAllNoDirectLinkSpeed() {
+        if (allLinkSpeed.size() == 0) {
+            return null;
+        }
         return allLinkSpeed;
     }
 
     @Override
-    public Float getNoDirectLinkUsage(NoDirectLink noDirectLink){
+    public Float getNoDirectLinkUsage(NoDirectLink noDirectLink) {
+        if (allLinkUsage.size() == 0) {
+            return null;
+        }
         return allLinkUsage.get(noDirectLink);
     }
 
     @Override
     public Float getNoDirectLinkUsage(Link link) {
-        NoDirectLink noDirectLink =  CommonUse.getNoDirectionLink(link);
+        NoDirectLink noDirectLink = CommonUse.getNoDirectionLink(link);
         return allLinkUsage.get(noDirectLink);
     }
 
@@ -408,17 +424,24 @@ public class BandwidthMonitor implements IFloodlightModule, IBandwidthMonitor {
         }
 
         LinkSpeed[] top3LinkSpeed = getTopNSpeedNoDirectLinks();
-        for (int i = 0; i < top3LinkSpeed.length; i++) {
-            if (top3LinkSpeed[i] != null) {
-                log.info("tank# top {} link speed is: {}", i + 1, top3LinkSpeed[i].getLinkSpeed());
+        if (top3LinkSpeed != null) {
+            for (int i = 0; i < top3LinkSpeed.length; i++) {
+                if (top3LinkSpeed[i] != null) {
+                    log.info("tank# top {} link speed is: {}", i + 1, top3LinkSpeed[i].getLinkSpeed());
+                }
             }
+        } else {
+            log.info("tank# no link speed statistics is got now");
         }
-
         LinkUsage[] top3LinkUsage = getTopNUsageNoDirectLinks();
-        for (int i = 0; i < top3LinkUsage.length; i++) {
-            if (top3LinkUsage[i] != null) {
-                log.info("tank# top {} link usage is: {}", i + 1, top3LinkUsage[i].getLinkUsage());
+        if (top3LinkUsage != null) {
+            for (int i = 0; i < top3LinkUsage.length; i++) {
+                if (top3LinkUsage[i] != null) {
+                    log.info("tank# top {} link usage is: {}", i + 1, top3LinkUsage[i].getLinkUsage());
+                }
             }
+        } else {
+            log.info("tank# no link usage statistics is got now");
         }
     }
 
@@ -429,6 +452,10 @@ public class BandwidthMonitor implements IFloodlightModule, IBandwidthMonitor {
     public LinkSpeed[] getTopNSpeedNoDirectLinks() {
         // TODO Auto-generated method stub
         List<Entry<NoDirectLink, Long>> sortedList = CommonUse.sortByValue(allLinkSpeed);
+        log.info("tank# sortedList size : {}", sortedList.size());
+        if (sortedList.size() == 0) {
+            return null;
+        }
         int i = 0;
 
         try {
@@ -454,6 +481,9 @@ public class BandwidthMonitor implements IFloodlightModule, IBandwidthMonitor {
     public LinkUsage[] getTopNUsageNoDirectLinks() {
         // TODO Auto-generated method stub
         List<Entry<NoDirectLink, Float>> sortedList = CommonUse.sortByValue(allLinkUsage);
+        if (sortedList.size() == 0) {
+            return null;
+        }
         int i = 0;
 
         try {
@@ -470,6 +500,81 @@ public class BandwidthMonitor implements IFloodlightModule, IBandwidthMonitor {
         }
 
         return topNUsageLinks;
+    }
+
+    @Override
+    public LinkUsage[] getAllDescendUsageNoDirectLinks() {
+        List<Entry<NoDirectLink, Float>> sortedList = CommonUse.sortByValue(allLinkUsage);
+        if (sortedList.size() == 0) {
+            return null;
+        }
+        LinkUsage[] descendNoDirectLinkUsage = new LinkUsage[sortedList.size()];
+
+        for (int i = 0; i < sortedList.size(); i++) {
+            Entry<NoDirectLink, Float> link = sortedList.get(i);
+            LinkUsage linkStatis = new LinkUsage(link.getKey(), link.getValue());
+            descendNoDirectLinkUsage[i] = linkStatis;
+        }
+
+        return descendNoDirectLinkUsage;
+    }
+
+    @Override
+    public LinkUsage[] getAllAscendUsageNoDirectLinks() {
+
+        List<Entry<NoDirectLink, Float>> sortedList = CommonUse.sortByValue(allLinkUsage);
+        if (sortedList.size() == 0) {
+            return null;
+        }
+        LinkUsage[] ascendNoDirectLinkUsage = new LinkUsage[sortedList.size()];
+
+        int listLength = sortedList.size();
+
+        for (int i = listLength - 1; i >= 0; i--) {
+            Entry<NoDirectLink, Float> link = sortedList.get(i);
+            LinkUsage linkStatis = new LinkUsage(link.getKey(), link.getValue());
+            ascendNoDirectLinkUsage[listLength - i - 1] = linkStatis;
+        }
+
+        return ascendNoDirectLinkUsage;
+    }
+
+    @Override
+    public LinkSpeed[] getAllDescendSpeedNoDirectLinks() {
+        // TODO Auto-generated method stub
+        List<Entry<NoDirectLink, Long>> sortedList = CommonUse.sortByValue(allLinkSpeed);
+        if (sortedList.size() == 0) {
+            return null;
+        }
+        LinkSpeed[] descendNoDirectLinkSpeed = new LinkSpeed[sortedList.size()];
+
+        for (int i = 0; i < sortedList.size(); i++) {
+            Entry<NoDirectLink, Long> link = sortedList.get(i);
+            LinkSpeed linkStatis = new LinkSpeed(link.getKey(), link.getValue());
+            descendNoDirectLinkSpeed[i] = linkStatis;
+        }
+
+        return descendNoDirectLinkSpeed;
+    }
+
+    @Override
+    public LinkSpeed[] getAllAscendSpeedNoDirectLinks() {
+        // TODO Auto-generated method stub
+        List<Entry<NoDirectLink, Long>> sortedList = CommonUse.sortByValue(allLinkSpeed);
+
+        if (sortedList.size() == 0) {
+            return null;
+        }
+        LinkSpeed[] ascendNoDirectLinkSpeed = new LinkSpeed[sortedList.size()];
+        int listLength = sortedList.size();
+
+        for (int i = listLength - 1; i >= 0; i--) {
+            Entry<NoDirectLink, Long> link = sortedList.get(i);
+            LinkSpeed linkStatis = new LinkSpeed(link.getKey(), link.getValue());
+            ascendNoDirectLinkSpeed[listLength - i - 1] = linkStatis;
+        }
+
+        return ascendNoDirectLinkSpeed;
     }
 
     @Override

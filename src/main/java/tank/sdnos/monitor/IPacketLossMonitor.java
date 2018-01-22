@@ -29,4 +29,10 @@ public interface IPacketLossMonitor extends IFloodlightService {
     public LinkLoss getMaxLossNoDirectLink();
 
     public LinkLoss[] getTopNLossLinks();
+
+    public Map<NoDirectLink, Long> getAllNoDirectLinkLossRate();
+
+    public LinkLoss[] getAllDescendLossNoDirectLinks();
+
+    public LinkLoss[] getAllAscendLossNoDirectLinks();
 }

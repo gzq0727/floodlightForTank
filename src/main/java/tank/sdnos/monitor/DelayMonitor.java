@@ -25,23 +25,26 @@ import net.floodlightcontroller.core.module.IFloodlightModule;
 import net.floodlightcontroller.core.module.IFloodlightService;
 import net.floodlightcontroller.linkdiscovery.ILinkDiscoveryService;
 import net.floodlightcontroller.linkdiscovery.internal.LinkInfo;
+import net.floodlightcontroller.restserver.IRestApiService;
 import net.floodlightcontroller.linkdiscovery.Link;
 import net.floodlightcontroller.threadpool.IThreadPoolService;
 import tank.sdnos.monitor.BandwidthMonitor.LinkUsage;
 import tank.sdnos.monitor.CommonUse.NoDirectLink;
+import tank.sdnos.monitor.web.DelayMonitorRest;
 
 public class DelayMonitor implements IFloodlightModule, IDelayMonitor {
     private static final Logger log = LoggerFactory.getLogger(DelayMonitor.class);
     private static ILinkDiscoveryService linkDiscoveryService;
     private static IThreadPoolService threadPoolService;
+    private static IRestApiService restApiService;
 
     private static volatile Map<Link, LatencyLet> linksDelay = new HashMap<Link, LatencyLet>();
 
     private static volatile Map<NoDirectLink, LatencyLet> noDirectlinksDelay = new HashMap<NoDirectLink, LatencyLet>();
 
     private static int TOP = 2;
-    private static LinkDelay[] topNDelayDirectLinks = new LinkDelay[TOP * 2];
-    private static LinkDelay[] topNDelayNoDirectLinks = new LinkDelay[TOP];
+    private static volatile LinkDelay[] topNDelayDirectLinks = new LinkDelay[TOP * 2];
+    private static volatile LinkDelay[] topNDelayNoDirectLinks = new LinkDelay[TOP];
 
     private static int statsUpdateInterval = 5;
     private static boolean isEnabled = true;
@@ -74,6 +77,7 @@ public class DelayMonitor implements IFloodlightModule, IDelayMonitor {
         l.add(IThreadPoolService.class);
         l.add(IOFSwitchService.class);
         l.add(ILinkDiscoveryService.class);
+        l.add(IRestApiService.class);
         return l;
     }
 
@@ -81,6 +85,8 @@ public class DelayMonitor implements IFloodlightModule, IDelayMonitor {
     public void init(FloodlightModuleContext context) throws FloodlightModuleException {
         linkDiscoveryService = context.getServiceImpl(ILinkDiscoveryService.class);
         threadPoolService = context.getServiceImpl(IThreadPoolService.class);
+        restApiService = context.getServiceImpl(IRestApiService.class);
+
         Map<String, String> config = context
                 .getConfigParams(net.floodlightcontroller.statistics.StatisticsCollector.class);
         if (config.containsKey("collectionIntervalPortStatsSecond")) {
@@ -109,6 +115,7 @@ public class DelayMonitor implements IFloodlightModule, IDelayMonitor {
     @Override
     public void startUp(FloodlightModuleContext context) throws FloodlightModuleException {
         if (isEnabled) {
+            restApiService.addRestletRoutable(new DelayMonitorRest());
             startDelayMonitor();
             log.info("tank# DelayMonitor is in service");
         }
@@ -205,6 +212,7 @@ public class DelayMonitor implements IFloodlightModule, IDelayMonitor {
 
     }
 
+    @SuppressWarnings("rawtypes")
     public static class LatencyLet implements Comparable {
         private Long latency;
         private Long currentLatency;
@@ -419,16 +427,21 @@ public class DelayMonitor implements IFloodlightModule, IDelayMonitor {
     public LinkDelay[] getTopNDelayDirectLinks() {
         // TODO Auto-generated method stub
 
-        List<Map.Entry<Link, LatencyLet>> sortedDelaylinks = CommonUse.sortByValue(linksDelay);
+        @SuppressWarnings("unchecked")
+        List<Map.Entry<Link, LatencyLet>> sortedDelayLinks = CommonUse.sortByValue(linksDelay);
+        if (sortedDelayLinks.size() == 0) {
+            return null;
+        }
+
         int i = 0;
         try {
             for (i = 0; i < TOP * 2; i++) {
-                LinkDelay linkDelay = new LinkDelay(sortedDelaylinks.get(i).getKey(),
-                        sortedDelaylinks.get(i).getValue().getLatency());
+                LinkDelay linkDelay = new LinkDelay(sortedDelayLinks.get(i).getKey(),
+                        sortedDelayLinks.get(i).getValue().getLatency());
                 topNDelayDirectLinks[i] = linkDelay;
             }
         } catch (IndexOutOfBoundsException e) {
-            for (int j = i; j < TOP *2; j++) {
+            for (int j = i; j < TOP * 2; j++) {
                 topNDelayDirectLinks[j] = null;
             }
         }
@@ -470,12 +483,17 @@ public class DelayMonitor implements IFloodlightModule, IDelayMonitor {
     public LinkDelay[] getTopNDelayNoDirectLinks() {
         // TODO Auto-generated method stub
 
-        List<Map.Entry<NoDirectLink, LatencyLet>> sortedDelaylinks = CommonUse.sortByValue(noDirectlinksDelay);
+        @SuppressWarnings("unchecked")
+        List<Map.Entry<NoDirectLink, LatencyLet>> sortedDelayLinks = CommonUse.sortByValue(noDirectlinksDelay);
+        if (sortedDelayLinks.size() == 0) {
+            return null;
+        }
+
         int i = 0;
         try {
             for (i = 0; i < TOP; i++) {
-                LinkDelay linkDelay = new LinkDelay(sortedDelaylinks.get(i).getKey(),
-                        sortedDelaylinks.get(i).getValue().getLatency());
+                LinkDelay linkDelay = new LinkDelay(sortedDelayLinks.get(i).getKey(),
+                        sortedDelayLinks.get(i).getValue().getLatency());
                 topNDelayNoDirectLinks[i] = linkDelay;
             }
         } catch (IndexOutOfBoundsException e) {
@@ -485,6 +503,65 @@ public class DelayMonitor implements IFloodlightModule, IDelayMonitor {
         }
         return topNDelayNoDirectLinks;
 
+    }
+
+    @Override
+    public LinkDelay[] getAllDescendDelayNoDirectLinks() {
+
+        @SuppressWarnings("unchecked")
+        List<Map.Entry<NoDirectLink, LatencyLet>> sortedDelayLinks = CommonUse.sortByValue(noDirectlinksDelay);
+        if (sortedDelayLinks.size() == 0) {
+            return null;
+        }
+
+        LinkDelay[] descendDelayNoDirectLinks = new LinkDelay[sortedDelayLinks.size()];
+
+        for (int i = 0; i < sortedDelayLinks.size(); i++) {
+            LinkDelay linkDelay = new LinkDelay(sortedDelayLinks.get(i).getKey(),
+                    sortedDelayLinks.get(i).getValue().getLatency());
+            descendDelayNoDirectLinks[i] = linkDelay;
+        }
+        return descendDelayNoDirectLinks;
+
+    }
+
+    @Override
+    public LinkDelay[] getAllAscendDelayNoDirectLinks() {
+
+        @SuppressWarnings("unchecked")
+        List<Map.Entry<NoDirectLink, LatencyLet>> sortedDelayLinks = CommonUse.sortByValue(noDirectlinksDelay);
+        if (sortedDelayLinks.size() == 0) {
+            return null;
+        }
+
+        LinkDelay[] ascendDelayNoDirectLinks = new LinkDelay[sortedDelayLinks.size()];
+        int listLength = sortedDelayLinks.size();
+
+        for (int i = listLength - 1; i >= 0; i--) {
+            LinkDelay linkDelay = new LinkDelay(sortedDelayLinks.get(i).getKey(),
+                    sortedDelayLinks.get(i).getValue().getLatency());
+            ascendDelayNoDirectLinks[listLength - i - 1] = linkDelay;
+        }
+        return ascendDelayNoDirectLinks;
+
+    }
+
+    @Override
+    public Map<Link, LatencyLet> getAllDirectLinkLatency() {
+        // TODO Auto-generated method stub
+        if (linksDelay.size() == 0) {
+            return null;
+        }
+        return linksDelay;
+    }
+
+    @Override
+    public Map<NoDirectLink, LatencyLet> getAllNoDirectLinkLatency() {
+        // TODO Auto-generated method stub
+        if (noDirectlinksDelay.size() == 0) {
+            return null;
+        }
+        return noDirectlinksDelay;
     }
 
 }
