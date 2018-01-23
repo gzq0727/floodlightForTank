@@ -156,48 +156,65 @@ public class PacketLossMonitor implements IFloodlightModule, IPacketLossMonitor 
     private class PacketLossStatsCollector implements Runnable {
         @Override
         public void run() {
-            Map<DatapathId, List<OFStatsReply>> replies = swStatisticsCollector
-                    .getSwitchsStatistics(switchService.getAllSwitchDpids(), OFStatsType.PORT);
-            for (Entry<DatapathId, List<OFStatsReply>> e : replies.entrySet()) {
-                for (OFStatsReply r : e.getValue()) {
-                    OFPortStatsReply psr = (OFPortStatsReply) r;
-                    for (OFPortStatsEntry pse : psr.getEntries()) {
-                        long pk_loss = 0;
+            try {
+                Map<DatapathId, List<OFStatsReply>> replies = swStatisticsCollector
+                        .getSwitchsStatistics(switchService.getAllSwitchDpids(), OFStatsType.PORT);
+                DPID_PK_LOSS.clear();
+                if (replies.size() == 0) {
+                    log.info("no port stats reply was found");
+                    return;
+                }
+                for (Entry<DatapathId, List<OFStatsReply>> e : replies.entrySet()) {
+                    for (OFStatsReply r : e.getValue()) {
+                        OFPortStatsReply psr = (OFPortStatsReply) r;
+                        for (OFPortStatsEntry pse : psr.getEntries()) {
+                            long pk_loss = 0;
 
-                        if (e.getKey().toString().equals("") || e.getKey() == null) {
-                        }
-                        NodePortTuple npt = new NodePortTuple(e.getKey(), pse.getPortNo());
-                        if ((pse.getRxBytes().getValue() + pse.getTxBytes().getValue()) != 0l) {
-                            pk_loss = (pse.getRxDropped().getValue() + pse.getTxDropped().getValue())
-                                    / (pse.getRxBytes().getValue() + pse.getTxBytes().getValue());
+                            if (e.getKey().toString().equals("") || e.getKey() == null) {
+                            }
+                            NodePortTuple npt = new NodePortTuple(e.getKey(), pse.getPortNo());
+                            if ((pse.getRxBytes().getValue() + pse.getTxBytes().getValue()) != 0l) {
+                                pk_loss = (pse.getRxDropped().getValue() + pse.getTxDropped().getValue())
+                                        / (pse.getRxBytes().getValue() + pse.getTxBytes().getValue());
 
-                        } else {
-                            pk_loss = 0;
+                            } else {
+                                pk_loss = 0;
+                            }
+                            DPID_PK_LOSS.put(npt, pk_loss);
                         }
-                        DPID_PK_LOSS.put(npt, pk_loss);
                     }
                 }
-            }
 
-            Map<Link, LinkInfo> linksInfo = linkDiscoveryService.getLinks();
-            Set<NoDirectLink> noDirectLinks = new HashSet<NoDirectLink>();
-            noDirectLinks = CommonUse.getNoDirectionLinksSet(linksInfo);
-            log.debug("tank# the size of noDirectLinks is: {}", noDirectLinks.size());
+                Map<Link, LinkInfo> linksInfo = linkDiscoveryService.getLinks();
+                allNoDirectLinkLossRate.clear();
+                if (linksInfo.size() == 0) {
+                    return;
+                }
+                Set<NoDirectLink> noDirectLinks = new HashSet<NoDirectLink>();
+                noDirectLinks = CommonUse.getNoDirectionLinksSet(linksInfo);
+                log.debug("tank# the size of noDirectLinks is: {}", noDirectLinks.size());
 
-            for (NoDirectLink noDirectLink : noDirectLinks) {
-                Long srcLossRate = DPID_PK_LOSS
-                        .get(new NodePortTuple(noDirectLink.getSrc(), noDirectLink.getSrcPort()));
-                Long dstLossRate = DPID_PK_LOSS
-                        .get(new NodePortTuple(noDirectLink.getDst(), noDirectLink.getDstPort()));
-                allNoDirectLinkLossRate.put(noDirectLink, srcLossRate + dstLossRate);
+                for (NoDirectLink noDirectLink : noDirectLinks) {
+                    Long srcLossRate = DPID_PK_LOSS
+                            .get(new NodePortTuple(noDirectLink.getSrc(), noDirectLink.getSrcPort()));
+                    Long dstLossRate = DPID_PK_LOSS
+                            .get(new NodePortTuple(noDirectLink.getDst(), noDirectLink.getDstPort()));
+                    allNoDirectLinkLossRate.put(noDirectLink, srcLossRate + dstLossRate);
+                }
+                testPacketLossMonitor();
+
+            } catch (Exception e) {
+                log.error("tank# {}", e.getStackTrace().toString());
             }
-            testPacketLossMonitor();
         }
     }
 
     private void testPacketLossMonitor() {
         LinkLoss[] testLinkLoss = new LinkLoss[TOP];
         testLinkLoss = getTopNLossLinks();
+        if (testLinkLoss == null) {
+            return;
+        }
         for (int i = 0; i < TOP; i++) {
             if (testLinkLoss[i] != null) {
                 log.info("tank# the top {} no direct link loss is: {}", i + 1, testLinkLoss[i].getLossRate());

@@ -22,7 +22,9 @@ public interface IBandwidthMonitor extends IFloodlightService {
      * get switch port speed in one switch the calculate method is speed =
      * port.getBitsPerSecondRx + port.getBitsPerSecondTx
      *
-     * @return the port speed in the unit of Mbps
+     * @param nodePortTuple
+     *            {@link NodePortTuple}
+     * @return the port speed in the unit of Kbps
      */
     public Long getPortSpeed(NodePortTuple nodePortTuple);
 
@@ -31,25 +33,93 @@ public interface IBandwidthMonitor extends IFloodlightService {
      * get the directional link speed the calculate method is:
      * (srcPort.getBitsPerSecondTx().getValue() +
      * dstPortBandwitdh.getBitsPerSecondRx().getValue()) / 2
+     *
      * @param link
-     * @return
+     *            {@link Link}
+     * @return link speed
      */
     public Long getDirectLinkSpeed(Link link);
 
+    /**
+     * get the directional link speed the calculate method is:
+     * (srcPort.getBitsPerSecondTx().getValue() +
+     * dstPortBandwitdh.getBitsPerSecondRx().getValue()) / 2
+     *
+     * @param srcSw
+     *            the {@link DatapathId} for source switch
+     * @param srcPort
+     *            the port number of source port
+     * @param dstSw
+     *            the {@link DatapathId} for destination switch
+     * @param dstPort
+     *            the port number of destination port
+     * @return link speed
+     */
     public Long getDirectLinkSpeed(DatapathId srcSw, int srcPort, DatapathId dstSw, int dstPort);
 
+    /**
+     * get the unirectional link speed the calculate method is: linkSpeed =
+     * (srcPortSpeed + dstPortSpeed) / 2;
+     *
+     * @param link
+     * @return link speed
+     */
     public Long getNoDirectLinkSpeed(Link link);
 
+    /**
+     * get the unirectional link speed the calculate method is: linkSpeed =
+     * (srcPortSpeed + dstPortSpeed) / 2;
+     *
+     * @param DatapathId
+     *            srcSw, int srcPort, DatapathId dstSw, int dstPort
+     * @return link speed
+     */
     public Long getNoDirectLinkSpeed(DatapathId srcSw, int srcPort, DatapathId dstSw, int dstPort);
 
+    /**
+     * get link speed for all directional links
+     *
+     */
     public Map<Link, Long> getAllDirectLinkSpeed();
 
+    /**
+     * get link speed for all undirected links
+     *
+     * @return Map<{@link tank.sdnos.monitor.commuse.NoDirectLink},Long>
+     */
     public Map<NoDirectLink, Long> getAllNoDirectLinkSpeed();
 
+    /**
+     * get link bandwidth usage for one undirected link, the calculate method
+     * is: linkSpeed / linkBandwidth
+     *
+     * @param link
+     *            {@link Link}
+     * @return link bandwidth usage
+     */
     public Float getNoDirectLinkUsage(Link link);
 
+    /**
+     * get link bandwidth usage for one undirected link, the calculate method
+     * is: linkSpeed / linkBandwidth
+     *
+     * @param srcSw
+     *            the {@link DatapathId} for source switch
+     * @param srcPort
+     *            the port number of source port
+     * @param dstSw
+     *            the {@link DatapathId} for destination switch
+     * @param dstPort
+     *            the port number of destination port
+     * @return link usage
+     */
     public Float getNoDirectLinkUsage(DatapathId srcSw, int srcPort, DatapathId dstSw, int dstPort);
 
+    /**
+     * get link usage for all undirected links
+     *
+     * @return link usage map
+     */
     public Map<NoDirectLink, Float> getAllNoDirectLinkUsage();
 
     /* get the class bean including the Link and Speed */

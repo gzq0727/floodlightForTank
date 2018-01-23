@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Map.Entry;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import org.projectfloodlight.openflow.types.U64;
@@ -48,6 +49,8 @@ public class DelayMonitor implements IFloodlightModule, IDelayMonitor {
 
     private static int statsUpdateInterval = 5;
     private static boolean isEnabled = true;
+
+    private static ScheduledFuture<?> future;
 
     /*
      * The latency data is obtained through the linkDiscoveryService implemented
@@ -122,77 +125,108 @@ public class DelayMonitor implements IFloodlightModule, IDelayMonitor {
     }
 
     public void startDelayMonitor() {
-        threadPoolService.getScheduledExecutor().scheduleAtFixedRate(new DelayCollectorThread(), statsUpdateInterval,
-                statsUpdateInterval, TimeUnit.SECONDS);
+        future = threadPoolService.getScheduledExecutor().scheduleAtFixedRate(new DelayCollectorThread(),
+                statsUpdateInterval, statsUpdateInterval, TimeUnit.SECONDS);
     }
 
     private class DelayCollectorThread implements Runnable {
 
         @Override
         public void run() {
-            // TODO Auto-generated method stub
-            Map<Link, LinkInfo> linksInfo = linkDiscoveryService.getLinks();
+            try {
+                // TODO Auto-generated method stub
+                Map<Link, LinkInfo> linksInfo = linkDiscoveryService.getLinks();
+                linksDelay.clear(); /*
+                                     * clear the map in order to avoid the
+                                     * removed link data remained in this map
+                                     */
+                noDirectlinksDelay.clear();
 
-            /* the link delay is calculate in the unit of direction link */
-            Iterator<Entry<Link, LinkInfo>> iter = linksInfo.entrySet().iterator();
-            while (iter.hasNext()) {
-                Entry<Link, LinkInfo> link = iter.next();
-                LatencyLet directLatencyLet = new LatencyLet();
-
-                directLatencyLet.setLatency(link.getKey().getLatency().getValue());
-                directLatencyLet.setCurrentLatency(link.getValue().getCurrentLatency().getValue());
-                if (link.getValue().getLatencyHistoryAverageForTank() != null) {
-                    directLatencyLet.setAverageLatency(link.getValue().getLatencyHistoryAverageForTank().getValue());
-                } else {
-                    directLatencyLet.setAverageLatency(null);
+                if (linksInfo.size() == 0) {
+                    log.info("no link data was found");
+                    return;
                 }
-                linksDelay.put(link.getKey(), directLatencyLet);
 
-                /* set information about noDirectLinksDelay */
-                NoDirectLink noDirectLink = CommonUse.getNoDirectionLink(link.getKey());
-                if (!noDirectlinksDelay.containsKey(noDirectLink)) {
+                /* the link delay is calculate in the unit of direction link */
+                Iterator<Entry<Link, LinkInfo>> iter = linksInfo.entrySet().iterator();
 
-                    LatencyLet noDirectLatencyLet = new LatencyLet();
-                    Link reverseLink = new Link();
-                    reverseLink.setSrc(link.getKey().getDst());
-                    reverseLink.setSrcPort(link.getKey().getDstPort());
-                    reverseLink.setDst(link.getKey().getSrc());
-                    reverseLink.setDstPort(link.getKey().getSrcPort());
+                while (iter.hasNext()) {
+                    Entry<Link, LinkInfo> link = iter.next();
+                    LatencyLet directLatencyLet = new LatencyLet();
 
-                    for (Link linkDetail : linksInfo.keySet()) {
-                        if (linkDetail.equals(reverseLink)) {
-                            reverseLink = linkDetail;
+                    directLatencyLet.setLatency(link.getKey().getLatency().getValue());
+                    directLatencyLet.setCurrentLatency(link.getValue().getCurrentLatency().getValue());
+                    if (link.getValue().getLatencyHistoryAverageForTank() != null) {
+                        directLatencyLet
+                                .setAverageLatency(link.getValue().getLatencyHistoryAverageForTank().getValue());
+                    } else {
+                        directLatencyLet.setAverageLatency(null);
+                    }
+                    linksDelay.put(link.getKey(), directLatencyLet);
+
+                    /* set information about noDirectLinksDelay */
+                    NoDirectLink noDirectLink = CommonUse.getNoDirectionLink(link.getKey());
+
+                    if (!noDirectlinksDelay.containsKey(noDirectLink)) {
+
+                        LatencyLet noDirectLatencyLet = new LatencyLet();
+                        Link reverseLink = new Link();
+                        reverseLink.setSrc(link.getKey().getDst());
+                        reverseLink.setSrcPort(link.getKey().getDstPort());
+                        reverseLink.setDst(link.getKey().getSrc());
+                        reverseLink.setDstPort(link.getKey().getSrcPort());
+
+                        boolean isReverseLinkExist = false;
+                        for (Link linkDetail : linksInfo.keySet()) {
+                            if (linkDetail.equals(reverseLink)) {
+                                reverseLink = linkDetail;
+                                isReverseLinkExist = true;
+                                break;
+                            }
+                        }
+                        /*
+                         * we must do this to ensure the reverse link is exist,
+                         * in order to get an nullpointexception below
+                         */
+                        if (!isReverseLinkExist) {
                             break;
                         }
+
+                        noDirectLatencyLet.setLatency(
+                                (link.getKey().getLatency().getValue() + reverseLink.getLatency().getValue()) / 2);
+                        noDirectLatencyLet.setCurrentLatency((link.getValue().getCurrentLatency().getValue()
+                                + linksInfo.get(reverseLink).getCurrentLatency().getValue()) / 2);
+                        if (link.getValue().getLatencyHistoryAverageForTank() != null) {
+                            noDirectLatencyLet
+                                    .setAverageLatency((link.getValue().getLatencyHistoryAverageForTank().getValue()
+                                            + linksInfo.get(reverseLink).getLatencyHistoryAverageForTank().getValue())
+                                            / 2);
+                        } else {
+                            noDirectLatencyLet.setAverageLatency(null);
+                        }
+
+                        noDirectlinksDelay.put(noDirectLink, noDirectLatencyLet);
                     }
 
-                    noDirectLatencyLet.setLatency(
-                            (link.getKey().getLatency().getValue() + reverseLink.getLatency().getValue()) / 2);
-                    noDirectLatencyLet.setCurrentLatency((link.getValue().getCurrentLatency().getValue()
-                            + linksInfo.get(reverseLink).getCurrentLatency().getValue()) / 2);
-                    if (link.getValue().getLatencyHistoryAverageForTank() != null) {
-                        noDirectLatencyLet
-                                .setAverageLatency((link.getValue().getLatencyHistoryAverageForTank().getValue()
-                                        + linksInfo.get(reverseLink).getLatencyHistoryAverageForTank().getValue()) / 2);
-                    } else {
-                        noDirectLatencyLet.setAverageLatency(null);
-                    }
-
-                    noDirectlinksDelay.put(noDirectLink, noDirectLatencyLet);
                 }
 
+                log.debug("tank# the size of noDirectLinks is: {}", noDirectlinksDelay.size());
+                testDelayMonitor();
+
+            } catch (Exception e) {
+                log.error("tank# {}", e.getStackTrace().toString());
             }
-
-            log.debug("tank# the size of noDirectLinks is: {}", noDirectlinksDelay.size());
-
-            testDelayMonitor();
         }
+
     }
 
     private void testDelayMonitor() {
 
         LinkDelay[] linkDelays = new LinkDelay[TOP];
         linkDelays = getTopNDelayDirectLinks();
+        if (linkDelays == null) {
+            return;
+        }
         for (int i = 0; i < TOP * 2; i++) {
             if (linkDelays[i] != null) {
                 log.info("tank# the top {} direct link delay is: {}", i + 1, linkDelays[i].getDelay());
@@ -202,6 +236,9 @@ public class DelayMonitor implements IFloodlightModule, IDelayMonitor {
         }
 
         linkDelays = getTopNDelayNoDirectLinks();
+        if (linkDelays == null) {
+            return;
+        }
         for (int i = 0; i < TOP; i++) {
             if (linkDelays[i] != null) {
                 log.info("tank# the top {} no direct link delay is: {}", i + 1, linkDelays[i].getDelay());
@@ -482,9 +519,9 @@ public class DelayMonitor implements IFloodlightModule, IDelayMonitor {
     @Override
     public LinkDelay[] getTopNDelayNoDirectLinks() {
         // TODO Auto-generated method stub
-
         @SuppressWarnings("unchecked")
         List<Map.Entry<NoDirectLink, LatencyLet>> sortedDelayLinks = CommonUse.sortByValue(noDirectlinksDelay);
+
         if (sortedDelayLinks.size() == 0) {
             return null;
         }

@@ -54,8 +54,8 @@ public class BandwidthMonitor implements IFloodlightModule, IBandwidthMonitor {
     // Future类，不明白的可以百度 Java现成future,其实C++11也有这个玩意了
     private static ScheduledFuture<?> bandwidthMonitor;
     private static Map<NodePortTuple, SwitchPortBandwidth> bandwidth;
-    private static Map<NoDirectLink, Long> allLinkSpeed = new HashMap<NoDirectLink, Long>();
-    private static Map<NoDirectLink, Float> allLinkUsage = new HashMap<NoDirectLink, Float>();
+    private static volatile Map<NoDirectLink, Long> allLinkSpeed = new HashMap<NoDirectLink, Long>();
+    private static volatile Map<NoDirectLink, Float> allLinkUsage = new HashMap<NoDirectLink, Float>();
     private static int TOP = 3;
     private static volatile LinkSpeed[] topNSpeedLinks = new LinkSpeed[TOP];
     private static volatile LinkUsage[] topNUsageLinks = new LinkUsage[TOP];
@@ -150,63 +150,76 @@ public class BandwidthMonitor implements IFloodlightModule, IBandwidthMonitor {
     private class BandwidthUpdateThread extends Thread implements Runnable {
         @Override
         public void run() {
-            bandwidth = statisticsService.getBandwidthConsumption();
-            Map<Link, LinkInfo> linksInfo = linkDiscoveryService.getLinks();
+            try {
+                bandwidth = statisticsService.getBandwidthConsumption();
+                Map<Link, LinkInfo> linksInfo = linkDiscoveryService.getLinks();
 
-            log.debug("tank# the size of linksInfo is: {}", linksInfo.size());
-
-            /**
-             * the link speed and link usage is calculate in the unit of no
-             * direction link But if you want to calculate in direction link,
-             * you need to change the speed and usage calculate methods below
-             */
-            Set<NoDirectLink> noDirectLinks = new HashSet<NoDirectLink>();
-            noDirectLinks = CommonUse.getNoDirectionLinksSet(linksInfo);
-            log.debug("tank# the size of noDirectLinks is: {}", noDirectLinks.size());
-
-            for (NoDirectLink link : noDirectLinks) {
-                DatapathId srcSw = link.getSrc();
-                DatapathId dstSw = link.getDst();
-                OFPort srcPort = link.getSrcPort();
-                OFPort dstPort = link.getDstPort();
-
-                NodePortTuple srcNode = new NodePortTuple(srcSw, srcPort);
-                NodePortTuple dstNode = new NodePortTuple(dstSw, dstPort);
-
-                Long srcPortSpeed = convertSwitchPortBandwidthToSpeed(bandwidth.get(srcNode));
-                Long dstPortSpeed = convertSwitchPortBandwidthToSpeed(bandwidth.get(dstNode));
-
-                if (srcPortSpeed != null && dstPortSpeed != null) {
-                    long linkSpeed = 0;
-                    /*
-                     * because the rx/tx speed in peer ports are not equal, so
-                     * will use the average as the link speed
-                     */
-                    linkSpeed = (srcPortSpeed + dstPortSpeed) / 2;
-                    allLinkSpeed.put(link, new Long(linkSpeed));
-                    long linkBandwidth = 0;
-                    long srcMaxPortSpeed = ofSwitchService.getSwitch(srcSw).getPort(srcPort).getMaxSpeed();
-                    long dstMaxPortSpeed = ofSwitchService.getSwitch(dstSw).getPort(dstPort).getMaxSpeed();
-                    if (srcMaxPortSpeed >= dstMaxPortSpeed) {
-                        linkBandwidth = dstMaxPortSpeed;
-                    } else {
-                        linkBandwidth = srcMaxPortSpeed;
-                    }
-
-                    float linkUsage = 0;
-                    linkBandwidth = 35000000L;
-                    linkUsage = linkBandwidth != 0 ? (linkSpeed / (float) linkBandwidth) : 0;
-                    allLinkUsage.put(link, new Float(linkUsage));
-                } else {
-                    /*
-                     * we did not cat the port speed , so we will it from the
-                     * Map
-                     */
-                    allLinkSpeed.remove(link);
-                    allLinkUsage.remove(link);
+                allLinkSpeed.clear();
+                allLinkUsage.clear();
+                if (bandwidth.size() == 0 || linksInfo.size() == 0) {
+                    log.info("no link usage data was found");
+                    return;
                 }
+
+                log.debug("tank# the size of linksInfo is: {}", linksInfo.size());
+
+                /**
+                 * the link speed and link usage is calculate in the unit of no
+                 * direction link But if you want to calculate in direction
+                 * link, you need to change the speed and usage calculate
+                 * methods below
+                 */
+                Set<NoDirectLink> noDirectLinks = new HashSet<NoDirectLink>();
+                noDirectLinks = CommonUse.getNoDirectionLinksSet(linksInfo);
+                log.debug("tank# the size of noDirectLinks is: {}", noDirectLinks.size());
+
+                for (NoDirectLink link : noDirectLinks) {
+                    DatapathId srcSw = link.getSrc();
+                    DatapathId dstSw = link.getDst();
+                    OFPort srcPort = link.getSrcPort();
+                    OFPort dstPort = link.getDstPort();
+
+                    NodePortTuple srcNode = new NodePortTuple(srcSw, srcPort);
+                    NodePortTuple dstNode = new NodePortTuple(dstSw, dstPort);
+
+                    Long srcPortSpeed = convertSwitchPortBandwidthToSpeed(bandwidth.get(srcNode));
+                    Long dstPortSpeed = convertSwitchPortBandwidthToSpeed(bandwidth.get(dstNode));
+
+                    if (srcPortSpeed != null && dstPortSpeed != null) {
+                        long linkSpeed = 0;
+                        /*
+                         * because the rx/tx speed in peer ports are not equal,
+                         * so will use the average as the link speed
+                         */
+                        linkSpeed = (srcPortSpeed + dstPortSpeed) / 2;
+                        allLinkSpeed.put(link, new Long(linkSpeed));
+                        long linkBandwidth = 0;
+                        long srcMaxPortSpeed = ofSwitchService.getSwitch(srcSw).getPort(srcPort).getMaxSpeed();
+                        long dstMaxPortSpeed = ofSwitchService.getSwitch(dstSw).getPort(dstPort).getMaxSpeed();
+                        if (srcMaxPortSpeed >= dstMaxPortSpeed) {
+                            linkBandwidth = dstMaxPortSpeed;
+                        } else {
+                            linkBandwidth = srcMaxPortSpeed;
+                        }
+
+                        float linkUsage = 0;
+                        linkBandwidth = 35000000L;
+                        linkUsage = linkBandwidth != 0 ? (linkSpeed / (float) linkBandwidth) : 0;
+                        allLinkUsage.put(link, new Float(linkUsage));
+                    } else {
+                        /*
+                         * we did not cat the port speed , so we will it from
+                         * the Map
+                         */
+                        allLinkSpeed.remove(link);
+                        allLinkUsage.remove(link);
+                    }
+                }
+                testBandwidthMonitor();
+
+            } catch (Exception e) {
+                log.error("tank# {}", e.getStackTrace().toString());
             }
-            testBandwidthMonitor();
         }
     }
 

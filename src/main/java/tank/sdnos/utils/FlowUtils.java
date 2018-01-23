@@ -660,6 +660,7 @@ public class FlowUtils {
         switch (gType) {
         case "all":
             delGroup.setGroupType(OFGroupType.ALL);
+            delGroup.setGroup(OFGroup.ALL);
             break;
         case "select":
             delGroup.setGroupType(OFGroupType.SELECT);
@@ -867,14 +868,10 @@ public class FlowUtils {
          * RUIJIE SWITCH delgroup.setGroupType(OFGroupType.INDIRECT);
          * this.sw.write(delgroup.build());
          */
-
-        delgroup.setGroupType(OFGroupType.SELECT);
-        sw.write(delgroup.build());
-
         delgroup.setGroupType(OFGroupType.INDIRECT);
         sw.write(delgroup.build());
 
-        delgroup.setGroupType(OFGroupType.FF);
+        delgroup.setGroupType(OFGroupType.SELECT);
         sw.write(delgroup.build());
 
         return true;
