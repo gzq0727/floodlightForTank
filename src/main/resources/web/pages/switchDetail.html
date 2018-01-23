@@ -1,441 +1,457 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
+
 <head>
+
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
     <meta name="description" content="">
     <meta name="author" content="">
-    <title>Switch Detail</title>
+
+
+    <title>Tank SDNos - index</title>
+
     <!-- Bootstrap Core CSS -->
     <link href="../bower_components/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- MetisMenu CSS -->
-    <link href="../bower_components/metisMenu/dist/metisMenu.min.css" rel="stylesheet">
-    <!-- Custom CSS -->
-    <link href="../dist/css/sb-admin-2.css" rel="stylesheet">
+
+    <!-- DataTables CSS -->
+    <link href="../bower_components/datatables-plugins/integration/bootstrap/3/dataTables.bootstrap.css" rel="stylesheet">
+    <!-- DataTables Responsive CSS -->
+    <link href="../bower_components/datatables-responsive/css/dataTables.responsive.css" rel="stylesheet">
     <!-- Custom Fonts -->
+
     <link href="../bower_components/font-awesome/css/font-awesome.min.css" rel="stylesheet" type="text/css">
+    <link href="../bower_components/Ionicons/css/ionicons.min.css" rel="stylesheet" type="text/css">
+    <link href="../dist/css/AdminLTE.min.css" rel="stylesheet">
+
+    <link href="../dist/css/skins/_all-skins.min.css" rel="stylesheet">
 
 
-    <!-- Animate.css -->
-    <link href="//cdnjs.cloudflare.com/ajax/libs/animate.css/3.4.0/animate.min.css" rel="stylesheet" type="text/css"/>
+    <link href="../dist/css/timeline.css" rel="stylesheet">
+
+    <link href="../bower_components/morrisjs/morris.css" rel="stylesheet">
+
+    <link href="../dist/css/animate.min.css" rel="stylesheet" type="text/css"/>
     <link href="../bower_components/pnotify/css/pnotify.css" rel="stylesheet"/>
 
 
-    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
-    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
-    <!--[if lt IE 9]>
-    <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
-    <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
-    <![endif]-->
+
+    <link rel="stylesheet" href="../dist/css/fonts.googleapis.com.css">
 </head>
-<body>
+
+<body class="hold-transition skin-blue sidebar-mini">
+
 <div id="wrapper">
-    <!-- Navigation -->
-    <nav class="navbar navbar-default navbar-static-top" role="navigation" style="margin-bottom: 0">
-        <div class="navbar-header">
-            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
-                <span class="sr-only">Toggle navigation</span>
-                <span class="icon-bar"></span>
-                <span class="icon-bar"></span>
-                <span class="icon-bar"></span>
-            </button>
-            <a class="navbar-brand" href="index.html" id="home-button-title">Floodlight OpenFlow Controller </a>
-        </div>
-        <!-- /.navbar-header -->
-        <!-- /.navbar-top-links -->
-        <div class="navbar-default sidebar" role="navigation">
-            <div class="sidebar-nav navbar-collapse">
-                <nav id="navMenu"></nav>
-            </div>
-            <!-- /.sidebar-collapse -->
-        </div>
-        <!-- /.navbar-static-side -->
-    </nav>
-    <!-- Page Content -->
-    <div id="page-wrapper">
-        <div class="container-fluid">
-            <div class="row">
-                <div class="col-lg-12">
-                    <h3 class="page-header">Switch Detail</h3>
-                </div>
-                <!-- /.col-lg-12 -->
-            </div>
-            <!-- /.row -->
-            <div class="row">
-                <!-- /.content-->
-                <div class="col-lg-5">
-                    <div class="panel panel-primary">
-                        <div class="panel-heading">
-                            <i class="fa fa-info fa-fw"></i>Switch Detail
-                        </div>
-                        <!-- /.panel-heading -->
-                        <div class="panel-body">
+    <!-- Content Wrapper. Contains page content -->
+    <div id="cont" class="content-wrapper">
+        <!-- Content Header (Page header) -->
+        <section class="content-header">
+     
+            <ol class="breadcrumb">
+                <li><a href="#"><i class="fa fa-dashboard"></i>Switch </a></li>
+                <li><a href="active">detail</a></li>
 
-                            <table class="table table-hover">
+            </ol>
+        </section>
+
+        <!-- Main content -->
+        <section class="content">
 
 
-                                <tr>
-                                    <td><b>MAC</b></td>
-                                    <td>: <span id="dpid"></span></td>
-                                </tr>
-                                <tr>
-                                    <td><b>Version</b></td>
-                                    <td>: <span class="version"></span></td>
-                                </tr>
-                                <tr>
-                                    <td><b>Vendor</b></td>
-                                    <td>: <span id="manufacturerDescription"></span></td>
-                                </tr>
-                                <tr>
-                                    <td><b>Hardware Info</b></td>
-                                    <td>: <span id="hardwareDescription"></span></td>
-                                </tr>
-                                <tr>
-                                    <td><b>Software Version</b></td>
-                                    <td>: <span id="softwareDescription"></span></td>
-                                </tr>
-                                <tr>
-                                    <td><b>Serial Number</b></td>
-                                    <td>: <span id="serialNumber"></span></td>
-                                </tr>
-                                <tr>
-                                    <td><b>Datapath</b></td>
-                                    <td>: <span id="datapathDescription"></span></td>
-                                </tr>
-
-
-                            </table>
-                        </div>
-                        <!-- /.panel-body -->
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-lg-12">
+                        <h3 class="page-header">Switch Detail</h3>
                     </div>
+                    <!-- /.col-lg-12 -->
                 </div>
-
-
-                <div class="col-lg-4">
-                    <div class="panel panel-primary">
-                        <div class="panel-heading">
-                            <i class="fa fa-info fa-fw"></i> Flow Summary
-                        </div>
-                        <!-- /.panel-heading -->
-                        <div class="panel-body">
-                            <table class="table table-hover">
-
-                                <tr>
-                                    <td><b> Flow Count</b></td>
-                                    <td>: <span id="flowCount"></span></td>
-                                </tr>
-                                <tr>
-                                    <td><b>Packet Count</b></td>
-                                    <td>: <span id="packet_count"></span></td>
-                                </tr>
-                                <tr>
-                                    <td><b>Byte</b></td>
-                                    <td>: <span id="byte_count"></span></td>
-                                </tr>
-                                <tr>
-                                    <td><b>Flag</b></td>
-                                    <td>: <span id="flags"></span></td>
-                                </tr>
-                                <tr>
-                                    <td><b>Buffer</b></td>
-                                    <td>: <span id="bufferCount"></span></td>
-                                </tr>
-                                <tr>
-                                    <td><b>Table Count</b></td>
-                                    <td>: <span id="tableCount"></span></td>
-                                </tr>
-
-
-                            </table>
-                        </div>
-                        <!-- /.panel-body -->
-                    </div>
-                </div>
-
-
-                <div class="col-lg-3">
-                    <div class="panel panel-primary">
-                        <div class="panel-heading">
-                            <i class="fa fa-user fa-fw"></i> Role Info
-                        </div>
-                        <!-- /.panel-heading -->
-                        <div class="panel-body">
-
-                            <div class="form-group">
-                                <div class="radio">
-                                    <label>
-                                        <input type="radio" id="rbMASTER" name="iCheck"> MASTER
-                                    </label>
-                                </div>
-                                <div class="radio">
-                                    <label>
-                                        <input type="radio" id="rbSLAVE" name="iCheck"> SLAVE
-                                    </label>
-                                </div>
-
-                                <div class="radio">
-                                    <label>
-                                        <input type="radio" id="rbEQUAL" name="iCheck"> EQUAL
-                                    </label>
-                                </div>
+                <!-- /.row -->
+                <div class="row">
+                    <!-- /.content-->
+                    <div class="col-lg-5">
+                        <div class="panel panel-primary">
+                            <div class="panel-heading">
+                                <i class="fa fa-info fa-fw"></i>Switch Detail
                             </div>
-                            <button type="button" id="btnChangeRole" class="btn btn-primary">Change</button>
+                            <!-- /.panel-heading -->
+                            <div class="panel-body">
+
+                                <table class="table table-hover">
+
+
+                                    <tr>
+                                        <td><b>MAC</b></td>
+                                        <td>: <span id="dpid"></span></td>
+                                    </tr>
+                                    <tr>
+                                        <td><b>Version</b></td>
+                                        <td>: <span class="version"></span></td>
+                                    </tr>
+                                    <tr>
+                                        <td><b>Vendor</b></td>
+                                        <td>: <span id="manufacturerDescription"></span></td>
+                                    </tr>
+                                    <tr>
+                                        <td><b>Hardware Info</b></td>
+                                        <td>: <span id="hardwareDescription"></span></td>
+                                    </tr>
+                                    <tr>
+                                        <td><b>Software Version</b></td>
+                                        <td>: <span id="softwareDescription"></span></td>
+                                    </tr>
+                                    <tr>
+                                        <td><b>Serial Number</b></td>
+                                        <td>: <span id="serialNumber"></span></td>
+                                    </tr>
+                                    <tr>
+                                        <td><b>Datapath</b></td>
+                                        <td>: <span id="datapathDescription"></span></td>
+                                    </tr>
+
+
+                                </table>
+                            </div>
+                            <!-- /.panel-body -->
                         </div>
-                        <!-- /.panel-body -->
+                    </div>
+
+
+                    <div class="col-lg-4">
+                        <div class="panel panel-primary">
+                            <div class="panel-heading">
+                                <i class="fa fa-info fa-fw"></i> Flow Summary
+                            </div>
+                            <!-- /.panel-heading -->
+                            <div class="panel-body">
+                                <table class="table table-hover">
+
+                                    <tr>
+                                        <td><b> Flow Count</b></td>
+                                        <td>: <span id="flowCount"></span></td>
+                                    </tr>
+                                    <tr>
+                                        <td><b>Packet Count</b></td>
+                                        <td>: <span id="packet_count"></span></td>
+                                    </tr>
+                                    <tr>
+                                        <td><b>Byte</b></td>
+                                        <td>: <span id="byte_count"></span></td>
+                                    </tr>
+                                    <tr>
+                                        <td><b>Flag</b></td>
+                                        <td>: <span id="flags"></span></td>
+                                    </tr>
+                                    <tr>
+                                        <td><b>Buffer</b></td>
+                                        <td>: <span id="bufferCount"></span></td>
+                                    </tr>
+                                    <tr>
+                                        <td><b>Table Count</b></td>
+                                        <td>: <span id="tableCount"></span></td>
+                                    </tr>
+
+
+                                </table>
+                            </div>
+                            <!-- /.panel-body -->
+                        </div>
+                    </div>
+
+
+                    <div class="col-lg-3">
+                        <div class="panel panel-primary">
+                            <div class="panel-heading">
+                                <i class="fa fa-user fa-fw"></i> Role Info
+                            </div>
+                            <!-- /.panel-heading -->
+                            <div class="panel-body">
+
+                                <div class="form-group">
+                                    <div class="radio">
+                                        <label>
+                                            <input type="radio" id="rbMASTER" name="iCheck"> MASTER
+                                        </label>
+                                    </div>
+                                    <div class="radio">
+                                        <label>
+                                            <input type="radio" id="rbSLAVE" name="iCheck"> SLAVE
+                                        </label>
+                                    </div>
+
+                                    <div class="radio">
+                                        <label>
+                                            <input type="radio" id="rbEQUAL" name="iCheck"> EQUAL
+                                        </label>
+                                    </div>
+                                </div>
+                                <button type="button" id="btnChangeRole" class="btn btn-primary">Change</button>
+                            </div>
+                            <!-- /.panel-body -->
+                        </div>
+                    </div>
+
+
+                </div>
+
+
+                <div class="row">
+                    <div class="col-lg-12">
+
+                        <div class="panel panel-primary">
+                            <div class="panel-heading">
+                                <i class="fa fa-info fa-fw"></i> Port Table
+                            </div>
+                            <!-- /.panel-heading -->
+                            <div class="panel-body">
+
+                                <table class='table table-bordered table-striped table-hover responsive-utilities'
+                                       id="portTable">
+                                    <thead>
+                                    <tr>
+                                        <th>No</th>
+                                        <th>R. Packets</th>
+                                        <th>Tran. Packets</th>
+                                        <th>R. Bytes</th>
+                                        <th>Tran. Bytes</th>
+                                        <th>R. Dropped</th>
+                                        <th>Tran. Dropped</th>
+                                        <th>Coll.</th>
+                                        <th>Duration(s)</th>
+
+                                    </tr>
+                                    </thead>
+                                </table>
+                            </div>
+                            <!-- /.panel-body -->
+                        </div>
+
+
+                    </div>
+
+                </div>
+
+
+                <div class="row">
+                    <div class="col-md-1">
+                        <input type="button" id="btnFlowPusher" class="btn btn-sm btn-primary"
+                               value="Edit Static Flow Entries"/>
+                    </div>
+                    <br/>
+                    <br/>
+                </div>
+
+
+                <div class="row">
+                    <div class="col-lg-12">
+
+                        <div class="panel panel-primary">
+                            <div class="panel-heading">
+                                <i class="fa fa-info fa-fw"></i> Flow Table
+                            </div>
+                            <!-- /.panel-heading -->
+                            <div class="panel-body">
+                                <table class='table table-bordered table-striped table-hover responsive-utilities'
+                                       id="flowTable">
+                                    <thead>
+                                    <tr>
+                                        <th>Table No</th>
+                                        <th>Pkt.Count</th>
+                                        <th>Byte</th>
+                                        <th>Duration(s)</th>
+                                        <th>Priority</th>
+                                        <th>IdleTimeoutSec</th>
+                                        <th>HardTimeoutSec</th>
+                                        <th>Flags</th>
+                                        <th>Instructions</th>
+                                    </tr>
+                                    </thead>
+                                </table>
+
+                            </div>
+                            <!-- /.panel-body -->
+                        </div>
+
+
+                    </div>
+
+                </div>
+
+
+                <div class="row">
+                    <div class="col-md-8">
+
+                        <div class="panel panel-primary">
+                            <div class="panel-heading">
+                                <i class="fa fa-table fa-fw"></i>Tables
+                            </div>
+                            <!-- /.panel-heading -->
+                            <div class="panel-body">
+                                <table class='table table-bordered table-striped table-hover responsive-utilities'
+                                       id="switchTables">
+                                    <thead>
+                                    <tr>
+                                        <th>table_id</th>
+                                        <th>activeCount</th>
+                                        <th>lookUpCount</th>
+                                        <th>matchCount</th>
+                                    </tr>
+                                    </thead>
+                                </table>
+                            </div>
+                            <!-- /.panel-body -->
+                        </div>
+
+
+                    </div>
+                    <div class="col-md-4">
+
+                        <div class="panel panel-primary">
+                            <div class="panel-heading">
+                                <i class="fa fa-info fa-fw"></i> Groups
+                            </div>
+                            <!-- /.panel-heading -->
+                            <div class="panel-body">
+                                <table class="table table-hover">
+                                    <tr>
+                                        <td><b>capabilities</b></td>
+                                        <td>: <span id="capabilities"></span></td>
+                                    </tr>
+                                    <tr>
+                                        <td><b>maxGroupsAll</b></td>
+                                        <td>: <span id="maxGroupsAll"></span></td>
+                                    </tr>
+                                    <tr>
+                                        <td><b>maxGroupsSelect</b></td>
+                                        <td>: <span id="maxGroupsSelect"></span></td>
+                                    </tr>
+                                    <tr>
+                                        <td><b>maxGroupsIndirect</b></td>
+                                        <td>: <span id="maxGroupsIndirect"></span></td>
+                                    </tr>
+                                    <tr>
+                                        <td><b>maxGroupsFf</b></td>
+                                        <td>: <span id="maxGroupsFf"></span></td>
+                                    </tr>
+                                    <tr>
+                                        <td><b>actionsAll</b></td>
+                                        <td>: <span id="actionsAll"></span></td>
+                                    </tr>
+                                    <tr>
+                                        <td><b>actionsSelect</b></td>
+                                        <td>: <span id="actionsSelect"></span></td>
+                                    </tr>
+                                    <tr>
+                                        <td><b>actionsIndirect</b></td>
+                                        <td>: <span id="actionsIndirect"></span></td>
+                                    </tr>
+                                    <tr>
+                                        <td><b>actionsFf</b></td>
+                                        <td>: <span id="actionsFf"></span></td>
+                                    </tr>
+                                </table>
+                            </div>
+                            <!-- /.panel-body -->
+                        </div>
+
+
+                    </div>
+                </div>
+
+
+                <!-- Small modal -->
+                <div class="modal fade bs-example-modal-sm" tabindex="-1" role="dialog" aria-hidden="true">
+                    <div class="modal-dialog bs-example-modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <button type="button" class="close" id="roleModalCloseButton" data-dismiss="modal"
+                                        aria-label="Close">
+                                    <span aria-hidden="true">×</span>
+                                </button>
+                                <h4 class="modal-title" id="myModalLabel2">Bandwitdh Consumption</h4>
+                            </div>
+                            <div class="modal-body">
+
+                                <table class='table table-hover' id="statTable">
+                                    <thead>
+                                    <tr>
+                                        <th>Port</th>
+                                        <th>Updated On</th>
+                                        <th>Bps (RX)</th>
+                                        <th>Bps (TX)</th>
+                                    </tr>
+                                    </thead>
+                                </table>
+
+
+                            </div>
+
+                        </div>
                     </div>
                 </div>
 
 
             </div>
 
-
-            <div class="row">
-                <div class="col-lg-12">
-
-                    <div class="panel panel-primary">
-                        <div class="panel-heading">
-                            <i class="fa fa-info fa-fw"></i> Port Table
-                        </div>
-                        <!-- /.panel-heading -->
-                        <div class="panel-body">
-
-                            <table class='table table-bordered table-striped table-hover responsive-utilities'
-                                   id="portTable">
-                                <thead>
-                                <tr>
-                                    <th>No</th>
-                                    <th>R. Packets</th>
-                                    <th>Tran. Packets</th>
-                                    <th>R. Bytes</th>
-                                    <th>Tran. Bytes</th>
-                                    <th>R. Dropped</th>
-                                    <th>Tran. Dropped</th>
-                                    <th>Coll.</th>
-                                    <th>Duration(s)</th>
-
-                                </tr>
-                                </thead>
-                            </table>
-                        </div>
-                        <!-- /.panel-body -->
-                    </div>
-
-
-                </div>
-
-            </div>
-
-
-            <div class="row">
-                <div class="col-md-1">
-                    <input type="button" id="btnFlowPusher" class="btn btn-sm btn-primary"
-                           value="Edit Static Flow Entries"/>
-                </div>
-                <br/>
-                <br/>
-            </div>
-
-
-            <div class="row">
-                <div class="col-lg-12">
-
-                    <div class="panel panel-primary">
-                        <div class="panel-heading">
-                            <i class="fa fa-info fa-fw"></i> Flow Table
-                        </div>
-                        <!-- /.panel-heading -->
-                        <div class="panel-body">
-                            <table class='table table-bordered table-striped table-hover responsive-utilities'
-                                   id="flowTable">
-                                <thead>
-                                <tr>
-                                    <th>Table No</th>
-                                    <th>Pkt.Count</th>
-                                    <th>Byte</th>
-                                    <th>Duration(s)</th>
-                                    <th>Priority</th>
-                                    <th>IdleTimeoutSec</th>
-                                    <th>HardTimeoutSec</th>
-                                    <th>Flags</th>
-                                    <th>Instructions</th>
-                                </tr>
-                                </thead>
-                            </table>
-
-                        </div>
-                        <!-- /.panel-body -->
-                    </div>
-
-
-                </div>
-
-            </div>
-
-
-            <div class="row">
-                <div class="col-md-8">
-
-                    <div class="panel panel-primary">
-                        <div class="panel-heading">
-                            <i class="fa fa-table fa-fw"></i>Tables
-                        </div>
-                        <!-- /.panel-heading -->
-                        <div class="panel-body">
-                            <table class='table table-bordered table-striped table-hover responsive-utilities'
-                                   id="switchTables">
-                                <thead>
-                                <tr>
-                                    <th>table_id</th>
-                                    <th>activeCount</th>
-                                    <th>lookUpCount</th>
-                                    <th>matchCount</th>
-                                </tr>
-                                </thead>
-                            </table>
-                        </div>
-                        <!-- /.panel-body -->
-                    </div>
-
-
-                </div>
-                <div class="col-md-4">
-
-                    <div class="panel panel-primary">
-                        <div class="panel-heading">
-                            <i class="fa fa-info fa-fw"></i> Groups
-                        </div>
-                        <!-- /.panel-heading -->
-                        <div class="panel-body">
-                            <table class="table table-hover">
-                                <tr>
-                                    <td><b>capabilities</b></td>
-                                    <td>: <span id="capabilities"></span></td>
-                                </tr>
-                                <tr>
-                                    <td><b>maxGroupsAll</b></td>
-                                    <td>: <span id="maxGroupsAll"></span></td>
-                                </tr>
-                                <tr>
-                                    <td><b>maxGroupsSelect</b></td>
-                                    <td>: <span id="maxGroupsSelect"></span></td>
-                                </tr>
-                                <tr>
-                                    <td><b>maxGroupsIndirect</b></td>
-                                    <td>: <span id="maxGroupsIndirect"></span></td>
-                                </tr>
-                                <tr>
-                                    <td><b>maxGroupsFf</b></td>
-                                    <td>: <span id="maxGroupsFf"></span></td>
-                                </tr>
-                                <tr>
-                                    <td><b>actionsAll</b></td>
-                                    <td>: <span id="actionsAll"></span></td>
-                                </tr>
-                                <tr>
-                                    <td><b>actionsSelect</b></td>
-                                    <td>: <span id="actionsSelect"></span></td>
-                                </tr>
-                                <tr>
-                                    <td><b>actionsIndirect</b></td>
-                                    <td>: <span id="actionsIndirect"></span></td>
-                                </tr>
-                                <tr>
-                                    <td><b>actionsFf</b></td>
-                                    <td>: <span id="actionsFf"></span></td>
-                                </tr>
-                            </table>
-                        </div>
-                        <!-- /.panel-body -->
-                    </div>
-
-
-                </div>
-            </div>
-
-
-            <!-- Small modal -->
-            <div class="modal fade bs-example-modal-sm" tabindex="-1" role="dialog" aria-hidden="true">
-                <div class="modal-dialog bs-example-modal-lg">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <button type="button" class="close" id="roleModalCloseButton" data-dismiss="modal"
-                                    aria-label="Close">
-                                <span aria-hidden="true">×</span>
-                            </button>
-                            <h4 class="modal-title" id="myModalLabel2">Bandwitdh Consumption</h4>
-                        </div>
-                        <div class="modal-body">
-
-                            <table class='table table-hover' id="statTable">
-                                <thead>
-                                <tr>
-                                    <th>Port</th>
-                                    <th>Updated On</th>
-                                    <th>Bps (RX)</th>
-                                    <th>Bps (TX)</th>
-                                </tr>
-                                </thead>
-                            </table>
-
-
-                        </div>
-
-                    </div>
-                </div>
-            </div>
-
-
-        </div>
-        <!-- /.container-fluid -->
+        </section>
+        <!-- /.content -->
     </div>
-    <!-- /#page-wrapper -->
 
-    <div id="login-modal-include"></div>
+    <footer class="main-footer">
+        <div class="pull-right hidden-xs">
+            <b>Version</b> 2.4.0
+        </div>
+        <strong>Copyright &copy; 2014-2016 <a href="https://adminlte.io">Almsaeed Studio</a>.</strong> All rights
+        reserved.
+    </footer>
 
 </div>
 <!-- /#wrapper -->
+
 <!-- jQuery -->
 <script src="../bower_components/jquery/dist/jquery.min.js"></script>
+<script src="../js/navbar_adminlte.js"></script>
+
+
 <!-- Bootstrap Core JavaScript -->
 <script src="../bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
-<!-- Metis Menu Plugin JavaScript -->
-<script src="../bower_components/metisMenu/dist/metisMenu.min.js"></script>
-<!-- Custom Theme JavaScript -->
-<script src="../dist/js/sb-admin-2.js"></script>
 
-<!-- Querystring Parser-->
-<script src="../js/querystringparser.js"></script>
+<script src="../bower_components/jquery-slimscroll/jquery.slimscroll.min.js"></script>
+<!-- FastClick -->
+<script src="../bower_components/fastclick/lib/fastclick.js"></script>
+
+<script src="../dist/js/adminlte.min.js"></script>
+<script src="../dist/js/demo.js"></script>
 
 <!-- DataTables JavaScript -->
 <script src="../bower_components/datatables/media/js/jquery.dataTables.min.js"></script>
 <script src="../bower_components/datatables-plugins/integration/bootstrap/3/dataTables.bootstrap.min.js"></script>
+<!-- Page-Level Demo Scripts - Tables - Use for reference -->
 
-
-<!-- PNotify -->
+<script src="../js/querystringparser.js"></script>
 <script src="../bower_components/pnotify/pnotify.buttons.js"></script>
 <script src="../bower_components/pnotify/pnotify.core.js"></script>
 <script src="../bower_components/pnotify/pnotify.nonblock.js"></script>
 <script src="../js/jquery.cookie.js"></script>
 
-<script src="../js/querystringparser.js"></script>
+
 
 <!-- Custom scripts to load in HTML -->
-<script src="../js/navbar.js"></script>
-<script>
-    $(function () {
-        $("#login-modal-include").load("loginmodal.html");
-    });
-</script>
 
 
-<script>
-    var ipaddress = $.cookie('cip');
-    if (ipaddress == null || ipaddress == "") window.location.href = "login.html";
-    var restport = $.cookie('cport');
-    if (restport == null || restport == "") window.location.href = "login.html";
 
-    var sId = getQueryParameterByName("macAddress");
+<script type="text/javascript">
+
+    $('.sidebar-menu').tree();
+ 	var hostWithProt=window.location.host;
+	 
+	var restport= "8080";//window.location.port;
+	 
+	var ipaddress = "192.168.2.5";//hostWithProt.replace(':'+restport,"");
+    
+  document.getElementById("home-button-title").innerHTML =  hostWithProt;
+    
+        var sId = getQueryParameterByName("macAddress");
     ///ANAHTAR features
     $.ajax({
         url: " http://" + ipaddress + ":" + restport + "/wm/core/switch/" + sId + "/features/json",
@@ -455,9 +471,8 @@
 
         window.location.href = "flowPusher.html?macAddress=" + sId;
     });
-
-
-    ///ANAHTAR BİLGİLERİ
+    
+ ///ANAHTAR BİLGİLERİ
     $.ajax({
         url: " http://" + ipaddress + ":" + restport + "/wm/core/switch/" + sId + "/desc/json",
         success: function (data) {
@@ -722,8 +737,8 @@
 
     }
 
-
 </script>
 
 </body>
+
 </html>

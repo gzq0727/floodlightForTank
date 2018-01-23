@@ -11,13 +11,15 @@ document.getElementById("navMenu").innerHTML =
     '<li><a href="topology.html"><i class="fa fa-sitemap fa-fw"></i> Topology</a></li>'+
     '<li><a href="firewall.html"><i class="fa fa-warning fa-fw"></i> Firewall</a></li>'+
     '<li><a href="acl.html"><i class="fa fa-warning fa-fw"></i> Access Control Lists</a></li>'+
-    '<li><a href="statistics.html"><i class="fa fa-bar-chart-o fa-fw"></i> Statistics</a></li>'+
+    //'<li><a href="statistics.html"><i class="fa fa-bar-chart-o fa-fw"></i> Statistics</a></li>'+
     '<li><a data-toggle="modal" href="#login-modal"><i class="fa fa-sign-out"></i> Change Controllers</a></li>'+
+    '<li><a href="monitor.html"><i class="fa fa-bar-chart-o fa-fw"></i> Monitor</a></li>'+
     '</ul>';
-
+/*
 var ipaddress = $.cookie('cip');
 if (ipaddress == null || ipaddress == "") window.location.href = "login.html";
 var restport = $.cookie('cport');
 if (restport == null || restport == "") window.location.href = "login.html";
 
-document.getElementById("home-button-title").innerHTML = "Floodlight OpenFlow Controller - " + ipaddress + ":" + restport;
+document.getElementById("home-button-title").innerHTML = "SDNos For TANK - " + ipaddress + ":" + restport;
+*/

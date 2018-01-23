@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+
+    <title>Tank SDNos - index</title>
+
+    <!-- Bootstrap Core CSS -->
+    <link href="../bower_components/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- DataTables CSS -->
+    <link href="../bower_components/datatables-plugins/integration/bootstrap/3/dataTables.bootstrap.css" rel="stylesheet">
+    <!-- DataTables Responsive CSS -->
+    <link href="../bower_components/datatables-responsive/css/dataTables.responsive.css" rel="stylesheet">
+    <!-- Custom Fonts -->
+ 	 
+ 	
+ 	
+    <link href="../bower_components/font-awesome/css/font-awesome.min.css" rel="stylesheet" type="text/css">
+    <link href="../bower_components/Ionicons/css/Ionicons.min.css" rel="stylesheet" type="text/css">
+    <link href="../dist/css/AdminLTE.min.css" rel="stylesheet">
+
+    <link href="../dist/css/skins/_all-skins.min.css" rel="stylesheet">
+
+
+    <link href="../dist/css/timeline.css" rel="stylesheet">
+
+
+
+    <link href="../dist/css/animate.min.css" rel="stylesheet" type="text/css"/>
+ <link href="../bower_components/pnotify/css/pnotify.css" rel="stylesheet"/>
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+    <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+    <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+    <link rel="stylesheet" href="../dist/css/fonts.googleapis.com.css">
+
+    <link href="../bower_components/visjs/vis.min.css" rel="stylesheet"/>
+ <style>
+ 	#mynetwork{
+ 		height: calc(100vh - 260px);
+ 	}
+ 	
+ 	#myfloat{
+ 		right:20px;
+ 	}
+ </style>
+</head>
+
+<body class="hold-transition skin-blue sidebar-mini">
+
+<div id="wrapper">
+    <!-- Content Wrapper. Contains page content -->
+    <div id="cont" class="content-wrapper">
+        <!-- Content Header (Page header) -->
+        <section class="content-header">
+            <h1>
+                Monitor
+                <small>detail</small>
+            </h1>
+            <ol class="breadcrumb">
+                <li><a href="#"><i class="fa fa-dashboard"></i>Monitor</a></li>
+                <li><a href="active">detail</a></li>
+
+            </ol>
+        </section>
+
+        <!-- Main content -->
+        <section class="content">
+
+            <div class="row">
+             <div class="col-md-12">
+      <div class="box box-primary">
+        <div class="box-header with-border ">
+        
+          <i class="fa fa-map-marker"></i>
+          <h3 class="box-title">TANK数据中心网络监控</h3>
+        </div>
+        <!-- /.box-header -->
+        <div class="box-body no-padding">
+
+          <div class="row">
+            <div class="col-md-12 ">
+              <div class="pad">
+                <!-- Map will be created here -->
+                             <div id="myfloat"  style="float:right;position:absolute;width:20%;z-index:9999;">
+                <div class="row">   
+                <div class="col-md-12">
+     <div class="box  box-primary">
+          <div class="box-header">
+           <i class="fa fa-bullhorn"></i>
+            <h3 class="box-title">Notification</h3>
+          </div>
+          <!-- /.box-header -->
+          <div class="box-body  no-padding">
+            <table class="table table-striped">
+              <tr>
+                <th style="width: 10px">#</th>
+                <th>Max </th>
+    
+                <th style=>Value</th>
+              </tr>
+              <tr>
+                <td><i class="fa fa-circle-o text-red"></td>
+                <td> Link Usage Rate</td>
+        
+                <td><span style="font-size:18px;" id="slu" class="badge bg-yellow"></span></td>
+              </tr>
+              <tr>
+                <td><i class="fa fa-circle-o text-blue"></td>
+                <td> Link Latency (ms)</td>
+         
+                <td><span style="font-size:18px;" id="sla" class="badge bg-yellow"></span></td>
+              </tr>
+              <tr>
+                <td><i class="fa fa-circle-o text-yellow"></td>
+                <td> Link Loss Rate</td>
+      
+                <td><span style="font-size:18px;" id="sll" class="badge bg-yellow"></span></td>
+              </tr>
+              <tr>
+                <td><i class="fa fa-circle-o text-black"></td>
+                <td> Link Speed(Mbps)</td>
+        
+                <td><span style="font-size:18px;" id="sls" class="badge bg-yellow"></span></td>
+              </tr>
+            </table>
+          </div>
+          <!-- /.box-body -->
+        </div>
+        </div>
+        </div>
+		</div>
+     
+
+     
+      <div id="mynetwork"></div>
+	
+              </div>
+            </div>
+            <!-- /.col -->
+
+            <!-- /.col -->
+          </div>
+          <!-- /.row -->
+        </div>
+        <!-- /.box-body -->
+      </div>
+          </div>
+			</div>
+
+
+
+        </section>
+        <!-- /.content -->
+    </div>
+
+    <footer class="main-footer">
+        <div class="pull-right hidden-xs">
+            <b>Version</b> 2.4.0
+        </div>
+        <strong>Copyright &copy; 2014-2016 <a href="https://adminlte.io">Almsaeed Studio</a>.</strong> All rights
+        reserved.
+    </footer>
+
+</div>
+<!-- /#wrapper -->
+
+<!-- jQuery -->
+<script src="../bower_components/jquery/dist/jquery.min.js"></script>
+<script src="../js/navbar_adminlte.js"></script>
+
+
+<!-- Bootstrap Core JavaScript -->
+<script src="../bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
+
+<script src="../bower_components/jquery-slimscroll/jquery.slimscroll.min.js"></script>
+<!-- FastClick -->
+<script src="../bower_components/fastclick/lib/fastclick.js"></script>
+
+<script src="../dist/js/adminlte.min.js"></script>
+<script src="../dist/js/demo.js"></script>
+
+<!-- DataTables JavaScript -->
+<script src="../bower_components/datatables/media/js/jquery.dataTables.min.js"></script>
+<script src="../bower_components/datatables-plugins/integration/bootstrap/3/dataTables.bootstrap.min.js"></script>
+<!-- Page-Level Demo Scripts - Tables - Use for reference -->
+
+<script src="../js/querystringparser.js"></script>
+<script src="../bower_components/visjs/vis.js"></script>
+<script src="../bower_components/visjs/googleAnalytics.js"></script>
+<script src="../bower_components/jquery-knob/js/jquery.knob.js"></script>
+<script src="../bower_components/pnotify/pnotify.buttons.js"></script>
+<script src="../bower_components/pnotify/pnotify.core.js"></script>
+<script src="../bower_components/pnotify/pnotify.nonblock.js"></script>
+   
+
+
+<!-- Custom scripts to load in HTML -->
+
+
+
+<script type="text/javascript">
+
+    $('.sidebar-menu').tree();
+       $("#monitor").addClass("active");
+       
+        $(".knob").knob({
+      /*change : function (value) {
+       //console.log("change : " + value);
+       },
+       release : function (value) {
+       console.log("release : " + value);
+       },
+       cancel : function () {
+       console.log("cancel : " + this.value);
+       },*/
+      draw: function () {
+
+        // "tron" case
+        if (this.$.data('skin') == 'tron') {
+
+          var a = this.angle(this.cv)  // Angle
+                  , sa = this.startAngle          // Previous start angle
+                  , sat = this.startAngle         // Start angle
+                  , ea                            // Previous end angle
+                  , eat = sat + a                 // End angle
+                  , r = true;
+
+          this.g.lineWidth = this.lineWidth;
+
+          this.o.cursor
+          && (sat = eat - 0.3)
+          && (eat = eat + 0.3);
+
+          if (this.o.displayPrevious) {
+            ea = this.startAngle + this.angle(this.value);
+            this.o.cursor
+            && (sa = ea - 0.3)
+            && (ea = ea + 0.3);
+            this.g.beginPath();
+            this.g.strokeStyle = this.previousColor;
+            this.g.arc(this.xy, this.xy, this.radius - this.lineWidth, sa, ea, false);
+            this.g.stroke();
+          }
+
+          this.g.beginPath();
+          this.g.strokeStyle = r ? this.o.fgColor : this.fgColor;
+          this.g.arc(this.xy, this.xy, this.radius - this.lineWidth, sat, eat, false);
+          this.g.stroke();
+
+          this.g.lineWidth = 2;
+          this.g.beginPath();
+          this.g.strokeStyle = this.o.fgColor;
+          this.g.arc(this.xy, this.xy, this.radius - this.lineWidth + 1 + this.lineWidth * 2 / 3, 0, 2 * Math.PI, false);
+          this.g.stroke();
+
+          return false;
+        }
+      }
+    });
+       
+ 
+    var hostWithProt=window.location.host;
+
+    var restport="8080";//window.location.port;
+
+    var ipaddress = "192.168.2.5";//hostWithProt.replace(':'+restport,"");
+
+    var cnt = 0;
+    var nodes = [];
+    var edges = [];
+    var network = null;
+
+    var DIR = '../bower_components/visjs/img/refresh-cl/';
+    var EDGE_LENGTH_MAIN = 150;
+    var EDGE_LENGTH_SUB = 50;
+var stack_topleft = {"dir1": "up", "dir2": "left"};
+    function Link(srcs,srcp,dsts,dstp)
+    {
+        this.srcs=srcs;
+        this.srcp=srcp;
+        this.dsts=dsts;
+        this.dstp=dstp;
+    }
+
+    function cmpLink(l1,l2){
+        if(l1.srcs == l2.srcs && l1.srcp==l2.srcp && l1.dsts == l2.dsts&& l1.dstp ==l2.dstp){
+            return true;
+        }else if(l1.srcs == l2.dsts && l1.srcp == l2.dstp && l1.dsts == l2.srcs && l1.dstp == l2.srcp){
+            return true;
+        }else{
+            return false;
+        }
+    };
+
+
+    var m = new Map();  //links map to id
+    var mm = new Map(); // link true or false
+    var hs = new Set(); // host mac set
+    var ss = new Set();
+    /*
+     * This function draws the network and assigns actions to it as well.
+     **/
+    function draw() {
+
+        // create a network
+        var container = document.getElementById('mynetwork');
+
+        var data = {
+            nodes: nodes,
+            edges: edges
+        };
+
+        var options = {
+            edges:{
+                font: '150px arial #00ff00',
+                scaling:{
+                    label: true,
+                },
+                shadow: true,
+                smooth: true,
+                color: {
+                    color:'#00a65a',
+                    highlight:'#00a65a',
+                    hover: '#00a65a',
+                    inherit: 'from',
+                    opacity:1.0
+                }
+            },
+
+        };
+
+        network = new vis.Network(container, data, options);
+//        network.fit({scale: 4.0});
+
+        network.on("showPopup", function (params) {
+            if (params.charAt(0) == 's') {
+                var id = params.substring(1);
+                network["body"]["nodes"][params]["options"]["title"] = parseFlows(id);
+            }
+        });
+        
+       
+
+    }
+
+	
+    loadSwitches();
+
+
+    function loadExternalLinks(hosts) {
+
+        var url = "http://" + ipaddress + ":" + restport + "/wm/topology/external-links/json";
+
+        $.ajax({
+            url: url,
+            success: function (data) {
+                for (var i = 0; i < data.length; i++) {
+                    edges.push({
+                        from: "s" + data[i]["src-switch"],
+                        to: "s" + data[i]["dst-switch"],
+                        length: EDGE_LENGTH_MAIN,
+                        title: data[i]["src-switch"] + "/" + data[i]["src-port"] + "<br>" + data[i]["dst-switch"] + "/" + data[i]["dst-port"],
+                        color: 'red',
+                        width: 4
+                    });
+                }
+
+                for (var i = 0; i < hosts.length; i++) {
+                	hs.add(hosts[i]["mac"]);
+                    if (hosts[i]["attachmentPoint"].length > 0) {
+                        if (hosts[i].hasOwnProperty("trueAttachmentPoint") && hosts[i]["trueAttachmentPoint"][0] != null) {
+                            edges.push({
+                                from: "h" + hosts[i]["mac"]
+                                , to: "s" + hosts[i]["trueAttachmentPoint"][0].switch, length: EDGE_LENGTH_MAIN,
+                                title: hosts[i]["trueAttachmentPoint"][0].switch + "/" + hosts[i]["trueAttachmentPoint"][0].port+"<br> vlan: "+hosts[i]["vlan"],
+                                color: '#00a65a',
+                                width: 2
+                            });
+                        }
+                        else {
+                            edges.push({
+                                from: "h" + hosts[i]["mac"]
+                                , to: "s" + hosts[i]["attachmentPoint"][0].switch, length: EDGE_LENGTH_MAIN,
+                                title: hosts[i]["attachmentPoint"][0].switch + "/" + hosts[i]["attachmentPoint"][0].port+"<br> vlan: "+hosts[i]["vlan"],
+                                color: '#00a65a',
+                                width: 2
+                            });
+                        }
+                    }
+                }
+
+                loadInternalLinks();
+                //draw();
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                console.log(jqXHR.responseText);
+                alert('Error: ' + " " + jqXHR.responseText + " \n Status: " + textStatus + " \n Error Thrown: " +
+                        errorThrown);
+            }
+        });
+    }
+
+    function loadInternalLinks(hosts) {
+        $.ajax({
+            url: "http://" + ipaddress + ":" + restport + "/wm/topology/links/json",
+            success: function (data) {
+                for (var i = 0; i < data.length; i++) {
+                    var l = new Link(data[i]["src-switch"],data[i]["src-port"],data[i]["dst-switch"],data[i]["dst-port"]);
+                    m.set(l,i+"");
+                    mm.set(l,1);
+                    edges.push({
+                        id: i+"",
+                        from: "s" + data[i]["src-switch"], to: "s" + data[i]["dst-switch"], length: EDGE_LENGTH_MAIN,
+                        title: data[i]["src-switch"] + "/" + data[i]["src-port"] + "<br>" + data[i]["dst-switch"] + "/" + data[i]["dst-port"],
+                        width: 3,
+                        color: "#00a65a"
+                    });
+                }
+
+                //alert("draw");
+
+                draw();
+                loadLinkUsage();
+                //LoadExternalLinks(hosts);
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                new PNotify({
+                        title: 'Get Internal Link Data error!',
+                        text: 'Get Internal Link Data error!',
+                        type: 'error',
+                        hide: true,
+                        delay: 500,
+                        addclass: "stack-bottomright",
+                        stack: stack_topleft
+                    });
+            }
+        });
+    };
+
+    /* load link all usage*/
+    function loadLinkUsage(){
+        //alert("linkUsage");
+        $.ajax({
+            url: "http://" + ipaddress + ":" + restport + "/tank/moitor/bandwidthmoitor/json/AllNoDirectLinkUsage",
+            success: function (data) {
+
+                for (var i = 0; i < data.length; i++) {
+                    var l = new Link(data[i]["link"]["src-switch"],data[i]["link"]["src-port"],data[i]["link"]["dst-switch"],data[i]["link"]["dst-port"]);
+                    mm.forEach(function(item,key,mapObj){
+                        if(cmpLink(key,l)){
+                            if(parseFloat(data[i]["linkUsage"]) >= 0.5){
+                                //alert(true);
+                                mm.set(key,0);
+                            }else{
+                                //alert(false);
+                                mm.set(key,1);
+                            }
+
+                        }
+                    });
+                }
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                new PNotify({
+                        title: 'Get  Link Usage Data error!',
+                        text: 'Get  Link Usage Data error!',
+                        type: 'error',
+                        hide: true,
+                        delay: 500,
+                        addclass: "stack-bottomright",
+                        stack: stack_topleft
+                    });
+            }
+        });
+    }
+
+    function parseFlows(id) {
+        var flowString = "";
+        $.ajax({
+            url: "http://" + ipaddress + ":" + restport + "/wm/core/switch/" + id + "/flow/json",
+            async: false,
+            success: function (flowobject) {
+                for (var i = 0; i < flowobject["flows"].length; i++) {
+                    flowString += "Flow " + i + ":";
+                    flowString += "<br>&nbsp;&nbsp;&nbsp;Packet count: " + JSON.stringify(flowobject["flows"][i]["packet_count"]);
+                    flowString += "<br>&nbsp;&nbsp;&nbsp;Matches: " + JSON.stringify(flowobject["flows"][i]["match"]);
+                    if (flowobject["flows"][i]["version"] == "OF_13") {
+                        flowString += "<br>&nbsp;&nbsp;&nbsp;Actions: " + JSON.stringify(flowobject["flows"][i]["instructions"]["instruction_apply_actions"]["actions"]);
+                    }
+                    if (flowobject["flows"][i]["version"] == "OF_10") {
+                        flowString += "<br>&nbsp;&nbsp;&nbsp;Actions: " + JSON.stringify(flowobject["flows"][i]["actions"]["actions"]);
+                    }
+                    flowString += "<br>";
+                }
+            }
+        });
+        return flowString;
+    }
+
+
+function refreshInternalLinks() {
+	  $.ajax({
+            url: "http://" + ipaddress + ":" + restport + "/wm/topology/links/json",
+            success: function (data) {
+               
+               		if(data.length > m.size){
+               			clearAll();
+               			return;
+               		}
+               		
+                    var isOk = false;
+                    m.forEach(function(item,key,mapo){
+                    	 isOk = false;
+                    	 for (var i = 0; i < data.length; i++) {
+                    		var l = new Link(data[i]["src-switch"],data[i]["src-port"],data[i]["dst-switch"],data[i]["dst-port"]);
+    							if(cmpLink(key,l)){
+    							isOk = true;
+    							break;
+    							}
+                         }
+                         if(!isOk){
+                         	mm.forEach(function(items,keys,mobs){
+                         		if(cmpLink(keys,key)){
+                         			mm.set(keys,2);
+                       
+                    
+                     new PNotify({
+                        title: 'Link Down!',
+                        text: keys.srcs+":"+keys.srcp+"-"+keys.dsts+":"+keys.dstp,
+                        type: 'error',
+                        hide: true,
+                        delay: 500,
+                        addclass: "stack-bottomright",
+                        stack: stack_topleft
+                    });
+                    
+                         		}
+                         	});   
+                         }else{
+                         	  mm.forEach(function(items,keys,mobs){
+                         		if(cmpLink(keys,key)){
+                         			if(items == 2){
+                         				mm.set(keys,1);
+                         			new PNotify({
+                        			title: 'Link Up!',
+                        			text: keys.srcs+":"+keys.srcp+"-"+keys.dsts+":"+keys.dstp,
+                        			type: 'success',
+                        			hide: true,
+                        			delay: 500,
+                       				addclass: "stack-bottomright",
+                        			stack: stack_topleft
+                    				});
+                         			}
+      
+                         		}
+                         	}); 
+                         } 
+                    });
+                    
+ 
+               
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                                    new PNotify({
+                        title: 'Get Link data error',
+                        text: 'Get Link data error',
+                        type: 'error',
+                        hide: true,
+                        delay: 500,
+                        addclass: "stack-bottomright",
+                        stack: stack_topleft
+                    });
+            }
+        });
+}
+
+    function loadSwitches() {
+        $.ajax({
+            url: "http://" + ipaddress + ":" + restport + "/wm/core/controller/switches/json",
+            success: function (data) {
+
+                for (var i = 0; i < data.length; i++) {
+                	ss.add(data[i]["switchDPID"]);
+                    var id = "s" + data[i]["switchDPID"];
+                    var label =  data[i]["switchDPID"];
+                    nodes.push({
+                        id: id,
+                        label: label,
+                        image: DIR + 'switch.PNG',
+                        shape: 'image',
+                        title: parseFlows(data[i]["switchDPID"])
+                    });
+                }
+                LoadHosts();
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                new PNotify({
+                        title: 'Get Switches data error',
+                        text: 'Get Switches data error',
+                        type: 'error',
+                        hide: true,
+                        delay: 500,
+                        addclass: "stack-bottomright",
+                        stack: stack_topleft
+                    });
+            }
+        });
+    }
+
+function clearAll(){
+	m.clear();
+	mm.clear();
+	hs.clear();
+	ss.clear();
+	nodes = [];
+	edges = [];
+	network.destroy();
+	network = null;
+	//$("#mynetwork").remove();
+	loadSwitches();
+}
+
+
+
+
+function refreshHosts(){
+	refreshInternalLinks();
+	var isOk = false;
+	$.ajax({
+            url: "http://" + ipaddress + ":" + restport + "/wm/device/",
+            success: function (hosts) {
+                hosts = hosts.devices;
+                if(hs.size != hosts.length){
+                	isOk = true;
+                	
+                	clearAll();
+                	
+                }
+                
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                new PNotify({
+                        title: 'Get Hosts data error',
+                        text: 'Get Hosts data error',
+                        type: 'error',
+                        hide: true,
+                        delay: 500,
+                        addclass: "stack-bottomright",
+                        stack: stack_topleft
+                    });
+            }
+        });
+	
+	if(isOk)return;
+	 $.ajax({
+            url: "http://" + ipaddress + ":" + restport + "/wm/core/controller/switches/json",
+            success: function (data) {
+            	if(data.length != ss.size)clearAll();
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                 
+            }
+        });
+}
+ 
+
+    function LoadHosts() {
+        $.ajax({
+            url: "http://" + ipaddress + ":" + restport + "/wm/device/",
+            success: function (hosts) {
+                hosts = hosts.devices;
+                //console.log(hosts);
+                
+                for (var i = 0; i < hosts.length; i++) {
+
+                    if (hosts[i]["attachmentPoint"].length > 0) {
+                        var id = "h" + hosts[i]["mac"];
+                        var label = "" +hosts[i]["ipv4"];
+                        nodes.push({
+                            id: id,
+                            label: label,
+                            image: DIR + 'hosts.png',
+                            shape: 'image',
+                            title: hosts[i]["mac"]
+                        });
+                    }
+                }
+                loadExternalLinks(hosts);
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+               new PNotify({
+                        title: 'Get Hosts data error',
+                        text: 'Get Hosts data error',
+                        type: 'error',
+                        hide: true,
+                        delay: 500,
+                        addclass: "stack-bottomright",
+                        stack: stack_topleft
+                    });
+            }
+        });
+
+    };
+
+
+    $(document).ready(function () {
+		document.getElementById("home-button-title").innerHTML =  hostWithProt;
+        function showColor(){
+
+            mm.forEach(function (item, key, mapObj) {
+                if(item == 0){
+                    //alert(cnt);
+                    if(cnt % 2 == 0){
+                        m.forEach(function (items, keys, mapObjs) {
+                            if(cmpLink(key,keys)){
+                                //alert(1);
+                                network.clustering.updateEdge(items, {color: {
+                                    color:'#ff0000',
+                                    highlight:'#ff0000',
+                                    hover: '#ff0000',
+                                    inherit: 'from',
+                                    opacity:0.4
+                                }});
+                            }
+                        });
+
+                    }else{
+						
+                        m.forEach(function (items, keys, mapObjs) {
+                            if(cmpLink(keys,key)){
+                                //alert(2);
+                                network.clustering.updateEdge(items, {color: {
+                                    color:'#ff0000',
+                                    highlight:'#ff0000',
+                                    hover: '#ff0000',
+                                    inherit: 'from',
+                                    opacity:1.0
+                                }});
+                            }
+                        });
+                    }
+                }else{
+
+                    m.forEach(function (items, keys, mapObj) {
+                        if(cmpLink(keys,key)){
+                        	if(item == 1){
+                            network.clustering.updateEdge(items, {color: {
+                                color:'#00a65a',
+                                highlight:'#00a65a',
+                                hover: '#00a65a',
+                                inherit: 'from',
+                                opacity:1.0
+                            }});
+                            }else{
+                            network.clustering.updateEdge(items, {color: {
+                                color:'#bebebe',
+                                highlight:'#bebebe',
+                                hover: '#bebebe',
+                                inherit: 'from',
+                                opacity:0.4
+                            }});
+                            }
+                        }
+                    });
+                }
+            });
+            cnt = (cnt+1)%2;
+        };
+        window.setInterval(showColor, 1000);
+
+        window.setInterval(loadLinkUsage, 1000);
+        window.setInterval(loadAllMax,500);
+        window.setInterval(refreshHosts,5000);
+    })
+
+
+function LoadLinkMaxUsage() {
+        $.ajax({
+            url: "http://" + ipaddress + ":" + restport + "/tank/moitor/bandwidthmoitor/json/TopNUsageNoDirectLinks",
+            success: function (data) { 
+                for (var i = 0; i < data.length; i++) {
+                	//var str = data[i]["link"]["src-switch"]+":"+data[i]["link"]["src-port"]+"-"+data[i]["link"]["dst-switch"]+":"+data[i]["link"]["dst-port"];
+                	//$("#alu").append(str);
+                	var str =""+ parseFloat(data[i]["linkUsage"])*100;
+ 					 
+                	$("#slu").text(str.substring(0,str.lastIndexOf('.')+3)+" %")
+                	 
+                	break;
+                }
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                new PNotify({
+                        title: 'Get Link Usage data error',
+                        text: 'Get Hosts data error',
+                        type: 'error',
+                        hide: true,
+                        delay: 500,
+                        addclass: "stack-bottomright",
+                        stack: stack_topleft
+                    });
+            }
+        });
+
+    };
+    
+    function LoadLinkMaxSpeed() {
+        $.ajax({
+            url: "http://" + ipaddress + ":" + restport + "/tank/moitor/bandwidthmoitor/json/TopNSpeedNoDirectLinks",
+            success: function (data) { 
+                for (var i = 0; i < data.length; i++) {
+                	//var str = data[i]["link"]["src-switch"]+":"+data[i]["link"]["src-port"]+"-"+data[i]["link"]["dst-switch"]+":"+data[i]["link"]["dst-port"];
+                	//$("#alu").append(str);
+                	$("#sls").text(parseFloat(data[i]["linkSpeed"])/1000.0+"  Mbps");
+                	break;
+                }
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+               
+                       new PNotify({
+                        title: 'Get Link Speed data error',
+                        text: 'Get Speed data error',
+                        type: 'error',
+                        hide: true,
+                        delay: 500,
+                        addclass: "stack-bottomright",
+                        stack: stack_topleft
+                    });
+            }
+        });
+    };
+    
+    function LoadLinkMaxLoss() {
+        $.ajax({
+            url: "http://" + ipaddress + ":" + restport + "/tank/moitor/lossmoitor/json/TopNLossNoDirectLinks",
+            success: function (data) { 
+                for (var i = 0; i < data.length; i++) {
+                	//var str = data[i]["link"]["src-switch"]+":"+data[i]["link"]["src-port"]+"-"+data[i]["link"]["dst-switch"]+":"+data[i]["link"]["dst-port"];
+                	//$("#alu").append(str);
+                	var str =""+ parseFloat(data[i]["linkLoss"])*100;
+                	$("#sll").text(str.substring(0,str.lastIndexOf('.')+3)+" %");
+                	break;
+                }
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                new PNotify({
+                        title: 'Get Link Loss data error',
+                        text: 'Get Link Loss data error',
+                        type: 'error',
+                        hide: true,
+                        delay: 500,
+                        addclass: "stack-bottomright",
+                        stack: stack_topleft
+                    });
+            }
+        });
+    };
+    
+        function LoadLinkMaxDelay() {
+       
+        
+        $.ajax({
+            url: "http://" + ipaddress + ":" + restport + "/tank/moitor/delaymoitor/json/TopNDelayNoDirectLinks",
+            success: function (data) { 
+                for (var i = 0; i < data.length; i++) {
+                	//var str = data[i]["link"]["src-switch"]+":"+data[i]["link"]["src-port"]+"-"+data[i]["link"]["dst-switch"]+":"+data[i]["link"]["dst-port"];
+                	//$("#alu").append(str);
+                	$("#sla").text(data[i]["linkDelay"]+" ms");
+                	break;
+                }
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+             new PNotify({
+                        title: 'Get Latency Error',
+                        text: 'Get Latency Error! Check Server!',
+                        type: 'error',
+                        hide: true
+                    });
+            }
+        });
+    };
+    
+    
+    function loadAllMax(){
+    	LoadLinkMaxSpeed();
+    	LoadLinkMaxUsage();
+    	LoadLinkMaxLoss();
+    	LoadLinkMaxDelay();
+    }
+    loadAllMax();
+    
+</script>
+
+</body>
+
+</html>

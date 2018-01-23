@@ -31,7 +31,7 @@
     <link href="../bower_components/font-awesome/css/font-awesome.min.css" rel="stylesheet" type="text/css">
 
 
-    <link href="../bower_components/visjs/vis.css" rel="stylesheet"/>
+    <link href="../bower_components/visjs/vis.min.css" rel="stylesheet"/>
 
     <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
     <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
@@ -131,35 +131,53 @@
 <script src="../bower_components/visjs/vis.js"></script>
 <script src="../bower_components/visjs/googleAnalytics.js"></script>
 
-<script src="../js/jquery.cookie.js"></script>
+
 
 <!-- Custom scripts to load in HTML -->
 <script src="../js/navbar.js"></script>
-<script>
-    $(function(){
-        $("#login-modal-include").load("loginmodal.html");
-    });
-</script>
+
 
 <script type="text/javascript">
     /*
      * These cookies are set on the login page at login.html.
      * They are simply the IP address of your controller and the REST api port.
      * */
-    var ipaddress = $.cookie('cip');
-    if (ipaddress == null || ipaddress == "") window.location.href = "login.html";
-    var restport = $.cookie('cport');
-    if (restport == null || restport == "") window.location.href = "login.html";
+  	var hostWithProt=window.location.host;
+	 
+	var restport="8080";//window.location.port;
+	 
+	var ipaddress = "192.168.2.5";//hostWithProt.replace(':'+restport,"");
 
-
+	var cnt = 0;
     var nodes = [];
     var edges = [];
     var network = null;
 
     var DIR = '../bower_components/visjs/img/refresh-cl/';
-    var EDGE_LENGTH_MAIN = 50;
+    var EDGE_LENGTH_MAIN = 150;
     var EDGE_LENGTH_SUB = 50;
-
+    
+    function Link(srcs,srcp,dsts,dstp)
+	{
+	this.srcs=srcs;
+	this.srcp=srcp;
+	this.dsts=dsts;
+	this.dstp=dstp;
+	}
+	
+	function cmpLink(l1,l2){
+		if(l1.srcs == l2.srcs && l1.srcp==l2.srcp && l1.dsts == l2.dsts&& l1.dstp ==l2.dstp){
+			return true;
+		}else if(l1.srcs == l2.dsts && l1.srcp == l2.dstp && l1.dsts == l2.srcs && l1.dstp == l2.srcp){
+			return true;
+		}else{
+			return false;
+		}
+	};
+	
+ 
+var m = new Map();  //links map to id
+var mm = new Map(); // link true or false
     /*
     * This function draws the network and assigns actions to it as well.
     **/
@@ -173,11 +191,24 @@
             edges: edges
         };
 
-        var options = {
-            autoResize: true,
-            height: '100%',
-            width: '100%'
-        };
+      var options = {
+        edges:{
+          font: '150px arial #00ff00',
+          scaling:{
+            label: true,
+          },
+          shadow: true,
+          smooth: true,
+          color: {
+      color:'#00a65a',
+      highlight:'#00a65a',
+      hover: '#00a65a',
+      inherit: 'from',
+      opacity:1.0
+    }
+        },
+
+      };
 
         network = new vis.Network(container, data, options);
 //        network.fit({scale: 4.0});
@@ -219,7 +250,7 @@
                                 from: "h" + hosts[i]["mac"]
                                 , to: "s" + hosts[i]["trueAttachmentPoint"][0].switch, length: EDGE_LENGTH_MAIN,
                                 title: hosts[i]["trueAttachmentPoint"][0].switch + "/" + hosts[i]["trueAttachmentPoint"][0].port,
-                                color: 'green',
+                                color: '#00a65a',
                                 width: 2
                             });
                         }
@@ -228,7 +259,7 @@
                                 from: "h" + hosts[i]["mac"]
                                 , to: "s" + hosts[i]["attachmentPoint"][0].switch, length: EDGE_LENGTH_MAIN,
                                 title: hosts[i]["attachmentPoint"][0].switch + "/" + hosts[i]["attachmentPoint"][0].port,
-                                color: 'green',
+                                color: '#00a65a',
                                 width: 2
                             });
                         }
@@ -251,15 +282,53 @@
             url: "http://" + ipaddress + ":" + restport + "/wm/topology/links/json",
             success: function (data) {
                 for (var i = 0; i < data.length; i++) {
+                	var l = new Link(data[i]["src-switch"],data[i]["src-port"],data[i]["dst-switch"],data[i]["dst-port"]);
+                	m.set(l,i+""); 
+                	mm.set(l,false);
                     edges.push({
+                    	id: i+"",
                         from: "s" + data[i]["src-switch"], to: "s" + data[i]["dst-switch"], length: EDGE_LENGTH_MAIN,
                         title: data[i]["src-switch"] + "/" + data[i]["src-port"] + "<br>" + data[i]["dst-switch"] + "/" + data[i]["dst-port"],
-                        width: 3
+                        width: 3,
+                        color: "#00a65a"
                     });
                 }
-
+				
+				//alert("draw");
+				
                 draw();
+                loadLinkUsage();
                 //LoadExternalLinks(hosts);
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                alert('Error: ' + " " + jqXHR.responseText + " \n Status: " + textStatus + " \n Error Thrown: " +
+                        errorThrown);
+            }
+        });
+    };
+    
+    /* load link all usage*/
+    function loadLinkUsage(){
+    //alert("linkUsage");
+            $.ajax({
+            url: "http://" + ipaddress + ":" + restport + "/tank/moitor/bandwidthmoitor/json/AllNoDirectLinkUsage",
+            success: function (data) {
+           
+                 for (var i = 0; i < data.length; i++) {
+                 	var l = new Link(data[i]["link"]["src-switch"],data[i]["link"]["src-port"],data[i]["link"]["dst-switch"],data[i]["link"]["dst-port"]);
+                 	mm.forEach(function(item,key,mapObj){
+                 		if(cmpLink(key,l)){
+                 			if(parseFloat(data[i]["linkUsage"]) >= 1.0){
+                 				//alert(true);
+                 				mm.set(key,true);
+                 			}else{
+                 				//alert(false);
+                 				mm.set(key,false);
+                 			}
+                 			
+                 		}
+                 	});
+                 }
             },
             error: function (jqXHR, textStatus, errorThrown) {
                 alert('Error: ' + " " + jqXHR.responseText + " \n Status: " + textStatus + " \n Error Thrown: " +
@@ -303,7 +372,7 @@
                     nodes.push({
                         id: id,
                         label: label,
-                        image: DIR + 'switch.png',
+                        image: DIR + 'switch.PNG',
                         shape: 'image',
                         title: parseFlows(data[i]["switchDPID"])
                     });
@@ -331,7 +400,7 @@
                         nodes.push({
                             id: id,
                             label: label,
-                            image: DIR + 'Hardware-My-Computer-3-icon.png',
+                            image: DIR + 'hosts.png',
                             shape: 'image',
                             title: hosts[i]["mac"]
                         });
@@ -346,9 +415,80 @@
             }
         });
 
-    }
+    };
+    
 
+ $(document).ready(function () {
 
+  function showColor(){
+  
+  	mm.forEach(function (item, key, mapObj) {
+  		if(item == true){
+  			//alert(cnt);
+    		if(cnt % 2 == 0){
+    			m.forEach(function (items, keys, mapObjs) {
+    			if(cmpLink(key,keys)){
+    		//alert(1);
+     		network.clustering.updateEdge(items, {color: {
+      		color:'#ff0000',
+      		highlight:'#ff0000',
+      		hover: '#ff0000',
+      		inherit: 'from',
+      		opacity:0.4
+    		}});
+    		}
+		});
+    
+    	}else{
+    	 
+    	m.forEach(function (items, keys, mapObjs) {
+    		if(cmpLink(keys,key)){
+    		//alert(2);
+     		network.clustering.updateEdge(items, {color: {
+        	color:'#ff0000',
+        	highlight:'#ff0000',
+        	hover: '#ff0000',
+        	inherit: 'from',
+        	opacity:1.0
+      }});
+      }
+	});
+	}
+  		}else{
+  		
+  			m.forEach(function (items, keys, mapObj) {
+  			if(cmpLink(keys,key)){
+     		network.clustering.updateEdge(items, {color: {
+        	color:'#00a65a',
+        	highlight:'#00a65a',
+        	hover: '#00a65a',
+        	inherit: 'from',
+        	opacity:1.0
+      	}});
+      	}
+	});
+  		}
+  	});
+ cnt = (cnt+1)%2;
+  };
+   window.setInterval(showColor, 1000);
+   
+    window.setInterval(loadLinkUsage, 2000);
+   /*
+   function test(){
+   		mm.forEach(function (item, key, mapObj) {
+   			if(cnt % 2 == 0){
+   				mm.set(key,false);
+   			}else{
+   				mm.set(key,true);
+   			}
+   		});
+   		
+   		alert(mm.size);
+   };
+   
+   window.setInterval(test, 5000);*/
+     })
 </script>
 
 </body>

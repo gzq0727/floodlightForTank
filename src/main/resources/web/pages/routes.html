@@ -209,21 +209,14 @@
 
 <!-- Custom scripts to load in HTML -->
 <script src="../js/navbar.js"></script>
-<script>
-    $(function () {
-        $("#login-modal-include").load("loginmodal.html");
-    });
-</script>
+ 
 
 <script>
-    /*
-     * These cookies are set on the login page at login.html.
-     * They are simply the IP address of your controller and the REST api port.
-     * */
-    var ipaddress = $.cookie('cip');
-    if (ipaddress == null || ipaddress == "") window.location.href = "login.html";
-    var restport = $.cookie('cport');
-    if (restport == null || restport == "") window.location.href = "login.html";
+	var hostWithProt=window.location.host;
+	 
+	var restport=window.location.port;
+	 
+	var ipaddress = hostWithProt.replace(':'+restport,"");
 
     var routeTable;
     var pathTable;
@@ -375,11 +368,11 @@
 
 <script type="text/javascript">
 
-    var ipaddress = $.cookie('cip');
-    if (ipaddress == null || ipaddress == "") window.location.href = "login.html";
-    var restport = $.cookie('cport');
-    if (restport == null || restport == "") window.location.href = "login.html";
-
+ 	var hostWithProt=window.location.host;
+	 
+	var restport=window.location.port;
+	 
+	var ipaddress = hostWithProt.replace(':'+restport,"");
 
     var nodes = null;
     var edges = null;
@@ -491,6 +484,13 @@
 
 
 <script>
+
+    var hostWithProt=window.location.host;
+
+    var restport="8080";//window.location.port;
+
+    var ipaddress = "192.168.2.5";//hostWithProt.replace(':'+restport,"");
+
     // Create a data table with nodes.
     nodes = [];
 
@@ -616,7 +616,7 @@
                     nodes.push({
                         id: id,
                         label: label,
-                        image: DIR + 'switch.png',
+                        image: DIR + 'switch.PNG',
                         shape: 'image',
                         title: parseFlows(data[i]["switchDPID"])
                     });
@@ -644,7 +644,7 @@
                         nodes.push({
                             id: id,
                             label: label,
-                            image: DIR + 'Hardware-My-Computer-3-icon.png',
+                            image: DIR + 'hosts.png',
                             shape: 'image',
                             title: hosts[i]["mac"]
                         });

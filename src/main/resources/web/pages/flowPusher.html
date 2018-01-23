@@ -1,28 +1,38 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
+
 <head>
+
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
     <meta name="description" content="">
     <meta name="author" content="">
-    <title>Floodlight OpenFlow Controller - Static Flow Pusher</title>
+
+
+    <title>Tank SDNos - index</title>
+
     <!-- Bootstrap Core CSS -->
     <link href="../bower_components/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- MetisMenu CSS -->
-    <link href="../bower_components/metisMenu/dist/metisMenu.min.css" rel="stylesheet">
+
     <!-- DataTables CSS -->
-    <link href="../bower_components/datatables-plugins/integration/bootstrap/3/dataTables.bootstrap.css"
-          rel="stylesheet">
+    <link href="../bower_components/datatables-plugins/integration/bootstrap/3/dataTables.bootstrap.css" rel="stylesheet">
     <!-- DataTables Responsive CSS -->
     <link href="../bower_components/datatables-responsive/css/dataTables.responsive.css" rel="stylesheet">
-    <!-- Custom CSS -->
-    <link href="../dist/css/sb-admin-2.css" rel="stylesheet">
     <!-- Custom Fonts -->
-    <link href="../bower_components/font-awesome/css/font-awesome.min.css" rel="stylesheet" type="text/css">
 
-    <!-- Animate.css -->
-    <link href="//cdnjs.cloudflare.com/ajax/libs/animate.css/3.4.0/animate.min.css" rel="stylesheet" type="text/css"/>
+    <link href="../bower_components/font-awesome/css/font-awesome.min.css" rel="stylesheet" type="text/css">
+    <link href="../bower_components/Ionicons/css/ionicons.min.css" rel="stylesheet" type="text/css">
+    <link href="../dist/css/AdminLTE.min.css" rel="stylesheet">
+
+    <link href="../dist/css/skins/_all-skins.min.css" rel="stylesheet">
+
+
+    <link href="../dist/css/timeline.css" rel="stylesheet">
+
+    <link href="../bower_components/morrisjs/morris.css" rel="stylesheet">
+
+    <link href="../dist/css/animate.min.css" rel="stylesheet" type="text/css"/>
     <link href="../bower_components/pnotify/css/pnotify.css" rel="stylesheet"/>
 
     <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
@@ -31,196 +41,212 @@
     <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
     <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
     <![endif]-->
+
+    <link rel="stylesheet" href="../dist/css/fonts.googleapis.com.css">
 </head>
-<body>
+
+<body class="hold-transition skin-blue sidebar-mini">
+
 <div id="wrapper">
-    <!-- Navigation -->
-    <nav class="navbar navbar-default navbar-static-top" role="navigation" style="margin-bottom: 0">
-        <div class="navbar-header">
-            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
-                <span class="sr-only">Toggle navigation</span>
-                <span class="icon-bar"></span>
-                <span class="icon-bar"></span>
-                <span class="icon-bar"></span>
-            </button>
-            <a class="navbar-brand" href="index.html" id="home-button-title">Floodlight OpenFlow Controller </a>
-        </div>
-        <!-- /.navbar-top-links -->
-        <div class="navbar-default sidebar" role="navigation">
-            <div class="sidebar-nav navbar-collapse">
-                <nav id="navMenu"></nav>
+    <!-- Content Wrapper. Contains page content -->
+    <div id="cont" class="content-wrapper">
+        <!-- Content Header (Page header) -->
+        <section class="content-header">
+        
+            <ol class="breadcrumb">
+                <li><a href="#"><i class="fa fa-dashboard"></i>Static Flow Pusher</a></li>
+                <li><a href="active">detail</a></li>
+
+            </ol>
+        </section>
+
+        <!-- Main content -->
+        <section class="content">
+
+
+            <div class="row">
+                <div class="col-lg-12">
+                    <h3 class="page-header">Static Flow Pusher
+                        <div id="divSId"></div>
+                    </h3>
+                </div>
+                <!-- /.col-lg-12 -->
             </div>
-            <!-- /.sidebar-collapse -->
-        </div>
-        <!-- /.navbar-static-side -->
-    </nav>
-    <div id="page-wrapper">
-        <div class="row">
-            <div class="col-lg-12">
-                <h3 class="page-header">Static Flow Pusher
-                    <div id="divSId"></div>
-                </h3>
+            <!-- /.row -->
+
+
+            <div class="row">
+                <div class="col-md-1">
+                    <a href="#" class="btn btn-sm btn-primary" data-toggle="modal" data-target="#addRuleModal">Add New</a>
+                </div>
+                <div class="col-md-1">
+                    <a href="#" class="btn btn-sm btn-danger" data-toggle="modal" id="btnDeleteAll">Delete All</a>
+                </div>
+                <br/><br/>
             </div>
-            <!-- /.col-lg-12 -->
-        </div>
-        <!-- /.row -->
 
 
-        <div class="row">
-            <div class="col-md-1">
-                <a href="#" class="btn btn-sm btn-primary" data-toggle="modal" data-target="#addRuleModal">Add New</a>
-            </div>
-            <div class="col-md-1">
-                <a href="#" class="btn btn-sm btn-danger" data-toggle="modal" id="btnDeleteAll">Delete All</a>
-            </div>
-            <br/><br/>
-        </div>
+            <div class="row">
 
 
-        <div class="row">
+                <div class="col-lg-12">
+                    <div class="panel panel-primary">
+                        <div class="panel-heading">
+                            <i class="fa fa-table fa-fw"></i>Flows
+                        </div>
+                        <!-- /.panel-heading -->
+                        <div class="panel-body">
 
+                            <div id="flowTable"></div>
 
-            <div class="col-lg-12">
-                <div class="panel panel-primary">
-                    <div class="panel-heading">
-                        <i class="fa fa-table fa-fw"></i>Flows
+                        </div>
+                        <!-- /.panel-body -->
                     </div>
-                    <!-- /.panel-heading -->
-                    <div class="panel-body">
-
-                        <div id="flowTable"></div>
-
-                    </div>
-                    <!-- /.panel-body -->
                 </div>
             </div>
-        </div>
 
 
-        <!-- Add Rule-->
-        <div class="modal fade" tabindex="-1" id="addRuleModal" role="dialog" aria-hidden="true">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <button type="button" class="close" id="roleModalCloseButton2" data-dismiss="modal"
-                                aria-label="Close">
-                            <span aria-hidden="true">×</span>
-                        </button>
-                        <h4 class="modal-title" id="myModalLabel2">Create</h4>
-                    </div>
-                    <div class="modal-body">
-                        <div class="form">
-                            <div class="form-group">
-                                <label>Switch</label>
-                                <input class="form-control" type="text" id="switch" placeholder="MAC">
-                            </div>
-
-                            <div class="form-group">
-                                <label>Name</label>
-                                <input class="form-control" type="text" id="name" placeholder="flow-mod-1">
-                            </div>
-
-                            <div class="form-group">
-                                <label>Cookie</label>
-                                <input class="form-control" type="text" id="cookie" placeholder="0">
-                            </div>
-
-                            <div class="form-group">
-                                <label>Priority</label>
-                                <input class="form-control" type="text" id="priority" placeholder="32768">
-                            </div>
-
-                            <div class="form-group">
-                                <label>In port</label>
-                                <input class="form-control" type="text" id="in_port" placeholder="#">
-                            </div>
-
-                            <div class="form-group">
-                                <label>Active</label>
-                                <div class="radio">
-                                    <label>
-                                        <input type="radio" id="rbActive" name="check2" checked="checked"/> True
-                                    </label>
-                                    <label>
-                                        <input type="radio" id="rbPasive" name="check2"> False
-                                    </label>
+            <!-- Add Rule-->
+            <div class="modal fade" tabindex="-1" id="addRuleModal" role="dialog" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <button type="button" class="close" id="roleModalCloseButton2" data-dismiss="modal"
+                                    aria-label="Close">
+                                <span aria-hidden="true">×</span>
+                            </button>
+                            <h4 class="modal-title" id="myModalLabel2">Create</h4>
+                        </div>
+                        <div class="modal-body">
+                            <div class="form">
+                                <div class="form-group">
+                                    <label>Switch</label>
+                                    <input class="form-control" type="text" id="switch" placeholder="MAC">
                                 </div>
-                            </div>
 
-                            <div class="form-group">
-                                <label>Table</label>
-                                <input class="form-control" type="text" id="table" placeholder="Default flow table">
-                            </div>
-
-                            <div class="form-group">
-                                <label>idle_timeout</label>
-                                <input class="form-control" type="text" id="idle_timeout" placeholder="">
-                            </div>
-
-                            <div class="form-group">
-                                <label>hard_timeout</label>
-                                <input class="form-control" type="text" id="hard_timeout" placeholder="">
-                            </div>
-
-
-                            <div class="form-group">
-                                <label>Actions</label>
-                                <div id="actions-group">
-                                    <input class="form-control" type="text" id="actions" placeholder="Action">
+                                <div class="form-group">
+                                    <label>Name</label>
+                                    <input class="form-control" type="text" id="name" placeholder="flow-mod-1">
                                 </div>
-                            </div>
 
-                            <button type="submit" class="btn btn-default" id="btnAddAction">Add Action</button>
+                                <div class="form-group">
+                                    <label>Cookie</label>
+                                    <input class="form-control" type="text" id="cookie" placeholder="0">
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Priority</label>
+                                    <input class="form-control" type="text" id="priority" placeholder="32768">
+                                </div>
+
+                                <div class="form-group">
+                                    <label>In port</label>
+                                    <input class="form-control" type="text" id="in_port" placeholder="#">
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Active</label>
+                                    <div class="radio">
+                                        <label>
+                                            <input type="radio" id="rbActive" name="check2" checked="checked"/> True
+                                        </label>
+                                        <label>
+                                            <input type="radio" id="rbPasive" name="check2"> False
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Table</label>
+                                    <input class="form-control" type="text" id="table" placeholder="Default flow table">
+                                </div>
+
+                                <div class="form-group">
+                                    <label>idle_timeout</label>
+                                    <input class="form-control" type="text" id="idle_timeout" placeholder="">
+                                </div>
+
+                                <div class="form-group">
+                                    <label>hard_timeout</label>
+                                    <input class="form-control" type="text" id="hard_timeout" placeholder="">
+                                </div>
+
+
+                                <div class="form-group">
+                                    <label>Actions</label>
+                                    <div id="actions-group">
+                                        <input class="form-control" type="text" id="actions" placeholder="Action">
+                                    </div>
+                                </div>
+
+                                <button type="submit" class="btn btn-default" id="btnAddAction">Add Action</button>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" id="btnCancelAddRule" class="btn btn-sm btn-default" data-dismiss="modal">Cancel</button>
+                            <button type="button" id="btnAddRule" class="btn btn-sm btn-primary">Create</button>
                         </div>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" id="btnCancelAddRule" class="btn btn-sm btn-default" data-dismiss="modal">Cancel</button>
-                        <button type="button" id="btnAddRule" class="btn btn-sm btn-primary">Create</button>
-                    </div>
                 </div>
             </div>
-        </div>
 
-
+        </section>
+        <!-- /.content -->
     </div>
-    <!-- /#page-wrapper -->
+
+    <footer class="main-footer">
+        <div class="pull-right hidden-xs">
+            <b>Version</b> 2.4.0
+        </div>
+        <strong>Copyright &copy; 2014-2016 <a href="https://adminlte.io">Almsaeed Studio</a>.</strong> All rights
+        reserved.
+    </footer>
+
 </div>
 <!-- /#wrapper -->
+
 <!-- jQuery -->
 <script src="../bower_components/jquery/dist/jquery.min.js"></script>
+<script src="../js/navbar_adminlte.js"></script>
+
+
 <!-- Bootstrap Core JavaScript -->
 <script src="../bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
-<!-- Metis Menu Plugin JavaScript -->
-<script src="../bower_components/metisMenu/dist/metisMenu.min.js"></script>
+
+<script src="../bower_components/jquery-slimscroll/jquery.slimscroll.min.js"></script>
+<!-- FastClick -->
+<script src="../bower_components/fastclick/lib/fastclick.js"></script>
+
+<script src="../dist/js/adminlte.min.js"></script>
+<script src="../dist/js/demo.js"></script>
+
 <!-- DataTables JavaScript -->
 <script src="../bower_components/datatables/media/js/jquery.dataTables.min.js"></script>
 <script src="../bower_components/datatables-plugins/integration/bootstrap/3/dataTables.bootstrap.min.js"></script>
-<!-- Custom Theme JavaScript -->
-<script src="../dist/js/sb-admin-2.js"></script>
-
-<!-- PNotify -->
+<!-- Page-Level Demo Scripts - Tables - Use for reference -->
 <script src="../bower_components/pnotify/pnotify.buttons.js"></script>
 <script src="../bower_components/pnotify/pnotify.core.js"></script>
 <script src="../bower_components/pnotify/pnotify.nonblock.js"></script>
-<!-- Page-Level Demo Scripts - Tables - Use for reference -->
-<script src="../js/jquery.cookie.js"></script>
-
 <script src="../js/querystringparser.js"></script>
 
+
+
+
 <!-- Custom scripts to load in HTML -->
-<script src="../js/navbar.js"></script>
-<script>
-    $(function () {
-        $("#login-modal-include").load("loginmodal.html");
-    });
-</script>
 
-<script>
-    var ipaddress = $.cookie('cip');
-    if (ipaddress == null || ipaddress == "") window.location.href = "login.html";
-    var restport = $.cookie('cport');
-    if (restport == null || restport == "") window.location.href = "login.html";
 
+
+<script type="text/javascript">
+
+    $('.sidebar-menu').tree();
+    //$("#hosts").addClass("active");
+    var hostWithProt=window.location.host;
+
+    var restport="8080";//window.location.port;
+
+    var ipaddress = "192.168.2.5";//hostWithProt.replace(':'+restport,"");
+
+document.getElementById("home-button-title").innerHTML =  hostWithProt;
     var sId = getQueryParameterByName("macAddress");
     $("#divSId").html("(" + sId + ")");
     $('#switch').val(sId);
@@ -263,10 +289,12 @@
         }
     });
 
-//    $('#btnAddAction').click(function () {
-//        var html = '<input class="form-control" type="text" id="actions" placeholder="Action">';
-//        $('#actions-group').append(html);
-//    });
+/*
+         $('#btnAddAction').click(function () {
+             var html = '<input class="form-control" type="text" id="actions" placeholder="Action">';
+             $('#actions-group').append(html);
+        });
+        */
 
     function resetSFPModal() {
         var html = '<input class="form-control" type="text" id="actions" placeholder="Action">';
@@ -459,5 +487,7 @@
 
 
 </script>
+
 </body>
+
 </html>

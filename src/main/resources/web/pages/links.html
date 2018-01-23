@@ -5,30 +5,35 @@
 
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
     <meta name="description" content="">
     <meta name="author" content="">
 
-    <title>Floodlight OpenFlow Controller - Links</title>
+
+    <title>Tank SDNos - Links</title>
 
     <!-- Bootstrap Core CSS -->
     <link href="../bower_components/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
 
-    <!-- MetisMenu CSS -->
-    <link href="../bower_components/metisMenu/dist/metisMenu.min.css" rel="stylesheet">
-
     <!-- DataTables CSS -->
-    <link href="../bower_components/datatables-plugins/integration/bootstrap/3/dataTables.bootstrap.css"
-          rel="stylesheet">
-
+    <link href="../bower_components/datatables-plugins/integration/bootstrap/3/dataTables.bootstrap.css" rel="stylesheet">
     <!-- DataTables Responsive CSS -->
     <link href="../bower_components/datatables-responsive/css/dataTables.responsive.css" rel="stylesheet">
-
-    <!-- Custom CSS -->
-    <link href="../dist/css/sb-admin-2.css" rel="stylesheet">
-
     <!-- Custom Fonts -->
+
     <link href="../bower_components/font-awesome/css/font-awesome.min.css" rel="stylesheet" type="text/css">
+    <link href="../bower_components/Ionicons/css/ionicons.min.css" rel="stylesheet" type="text/css">
+    <link href="../dist/css/AdminLTE.min.css" rel="stylesheet">
+
+    <link href="../dist/css/skins/_all-skins.min.css" rel="stylesheet">
+
+
+    <link href="../dist/css/timeline.css" rel="stylesheet">
+
+    <link href="../bower_components/morrisjs/morris.css" rel="stylesheet">
+
+    <link href="../dist/css/animate.min.css" rel="stylesheet" type="text/css"/>
+    <link href="../bower_components/pnotify/css/pnotify.css" rel="stylesheet"/>
 
     <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
     <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
@@ -37,160 +42,576 @@
     <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
     <![endif]-->
 
+    <link rel="stylesheet" href="../dist/css/fonts.googleapis.com.css">
+    
+    <style>
+    	.mya{
+    		float:right;
+    	}
+    	
+    	.re{
+    		width:25px;
+    		height:25px;
+    		text-align:center;
+    		opacity: 0.9;
+    	}
+    	.re:hover{
+     
+    		cursor:pointer; 
+    		 
+    		opacity: 1.2;
+    	}
+    </style>
 </head>
-<body>
+
+<body class="hold-transition skin-blue sidebar-mini">
 
 <div id="wrapper">
+    <!-- Content Wrapper. Contains page content -->
+    <div id="cont" class="content-wrapper">
+        <!-- Content Header (Page header) -->
+        <section class="content-header">
+            <h1>
+                Links
+                <small>detail</small>
+            </h1>
+            <ol class="breadcrumb">
+                <li><a href="#"><i class="fa fa-dashboard"></i>Links</a></li>
+                <li><a href="active">detail</a></li>
 
-    <!-- Navigation -->
-    <nav class="navbar navbar-default navbar-static-top" role="navigation" style="margin-bottom: 0">
-        <div class="navbar-header">
-            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
-                <span class="sr-only">Toggle navigation</span>
-                <span class="icon-bar"></span>
-                <span class="icon-bar"></span>
-                <span class="icon-bar"></span>
-            </button>
-            <a class="navbar-brand" href="index.html" id="home-button-title">Floodlight OpenFlow Controller </a>
-        </div>
-        <!-- /.navbar-header -->
-        <!-- /.navbar-top-links -->
-        <div class="navbar-default sidebar" role="navigation">
-            <div class="sidebar-nav navbar-collapse">
-                <nav id="navMenu"></nav>
-            </div>
-            <!-- /.sidebar-collapse -->
-        </div>
-        <!-- /.navbar-static-side -->
-    </nav>
+            </ol>
+        </section>
 
-    <div id="page-wrapper">
-        <div class="row">
-            <div class="col-lg-12">
-                <h3 class="page-header">Links</h3>
-            </div>
-            <!-- /.col-lg-12 -->
-        </div>
-        <!-- /.row -->
-        <div class="row">
-            <div class="col-lg-12">
-                <div class="panel panel-primary">
-                    <div class="panel-heading">
-                        Internal Links
-                    </div>
-                    <!-- /.panel-heading -->
-                    <div class="panel-body">
-                        <div class="dataTable_wrapper">
-                            <table class="table table-striped table-bordered table-hover" id="tableInternalLinks" width="100%">
-                                <thead>
-                                <tr>
-                                    <th>Direction</th>
-                                    <th>Source Port</th>
-                                    <th>Source Switch</th>
-                                    <th>Destination Port</th>
-                                    <th>Destination Switch</th>
-                                    <!--<th>Latency (ms)</th>-->
-                                    <th>Type</th>
-                                </tr>
-                                </thead>
-                                <tbody></tbody>
-                            </table>
+        <!-- Main content -->
+        <section class="content">
+
+            <!-- /.row -->
+            <div class="row">
+                <div class="col-lg-12">
+                    <div class="panel panel-primary">
+                        <div class="panel-heading">
+                            Internal Links
+                            
+                 
+                 <div class="re" id="refresh" style="float:left;"><i class="fa fa-refresh"></i></div>
+            
+              
                         </div>
-                        <!-- /.table-responsive -->
-                    </div>
-                    <!-- /.panel-body -->
-                </div>
-                <!-- /.panel -->
-
-            </div>
-            <!-- /.col-lg-12 -->
-        </div>
-        <!-- /.row -->
-        <!-- /.row -->
-        <div class="row">
-            <div class="col-lg-12">
-                <div class="panel panel-primary">
-                    <div class="panel-heading">
-                        External Links
-                    </div>
-                    <!-- /.panel-heading -->
-                    <div class="panel-body">
-                        <div class="dataTable_wrapper">
-                            <table class="table table-striped table-bordered table-hover" id="tableExternalLinks" width="100%">
-                                <thead>
-                                <tr>
-                                    <th>Direction</th>
-                                    <th>Source Port</th>
-                                    <th>Source Switch</th>
-                                    <th>Destination Port</th>
-                                    <th>Destination Switch</th>
-                                    <!--<th>Latency (ms)</th>-->
-                                    <th>Type</th>
-                                </tr>
-                                </thead>
-                                <tbody></tbody>
-                            </table>
+                        <!-- /.panel-heading -->
+                        <div class="panel-body">
+                            <div class="dataTable_wrapper">
+                                <table class="table table-striped table-bordered table-hover dataTable" id="tableInternalLinks" width="100%">
+                                    <thead>
+                                    <tr role="row">
+                                        <th>Direction </th>
+                                        <th>Src Port</th>
+                                        <th>Source Switch</th>
+                                         <th>Des Port</th> 
+                                        <th>Destination Switch</th>
+                                        
+                                        <th>Type</th>
+                                        <th><a id="2" class="cli" href="#">Latency (ms) <i class="fa fa-sort-amount-desc mya" aria-hidden="true"></i></a></th>
+                                        <th><a id="0" class="cli" href="#">Link Usage<i  class="fa fa-sort-amount-desc mya" aria-hidden="true"></i></a></th>
+                                         <th><a id="3" class="cli" href="#">Link Loss<i  class="fa fa-sort-amount-desc mya" aria-hidden="true"></i></a></th>
+                                		<th><a id="1" class="cli" href="#">Link Speed<i  class="fa fa-sort-amount-desc mya" aria-hidden="true"></i></a></th>
+                                		<th>Link Speed Trend</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody id="il">
+                   				 </tbody>
+                                </table>
+                            </div>
+                            <!-- /.table-responsive -->
+                            <div class="row"><div class="col-sm-6"><div class="dataTables_info" id="tableInternalLinks_info" role="status" aria-live="polite"></div></div><div class="col-sm-6"></div></div>
                         </div>
-                        <!-- /.table-responsive -->
+                        <!-- /.panel-body -->
                     </div>
-                    <!-- /.panel-body -->
-                </div>
-                <!-- /.panel -->
+                    <!-- /.panel -->
 
+                </div>
+                <!-- /.col-lg-12 -->
             </div>
-            <!-- /.col-lg-12 -->
-        </div>
-        <!-- /.row -->
+            <!-- /.row -->
+            <!-- /.row -->
+            <div class="row">
+                <div class="col-lg-12">
+                    <div class="panel panel-primary">
+                        <div class="panel-heading">
+                            External Links
+         
+                        </div>
+                        <!-- /.panel-heading -->
+                        <div class="panel-body">
+                            <div class="dataTable_wrapper">
+                                <table class="table table-striped table-bordered table-hover" id="tableExternalLinks" width="100%">
+                                    <thead>
+                                    <tr>
+                                        <th>Direction</th>
+                                        <th>Source Port</th>
+                                        <th>Source Switch</th>
+                                        <th>Destination Port</th>
+                                        <th>Destination Switch</th>
+                                        <!--<th>Latency (ms)</th>-->
+                                        <th>Type</th>
+                                     
+                                   
+                                    </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                            <!-- /.table-responsive -->
+                        </div>
+                        <!-- /.panel-body -->
+                    </div>
+                    <!-- /.panel -->
+
+                </div>
+                <!-- /.col-lg-12 -->
+            </div>
+            <!-- /.row -->
+
+
+
+        </section>
+        <!-- /.content -->
     </div>
-    <!-- /#page-wrapper -->
 
-    <div id="login-modal-include"></div>
+    <footer class="main-footer">
+        <div class="pull-right hidden-xs">
+            <b>Version</b> 2.4.0
+        </div>
+        <strong>Copyright &copy; 2014-2016 <a href="https://adminlte.io">Almsaeed Studio</a>.</strong> All rights
+        reserved.
+    </footer>
 
 </div>
 <!-- /#wrapper -->
 
 <!-- jQuery -->
 <script src="../bower_components/jquery/dist/jquery.min.js"></script>
+<script src="../js/navbar_adminlte.js"></script>
+
 
 <!-- Bootstrap Core JavaScript -->
 <script src="../bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
 
-<!-- Metis Menu Plugin JavaScript -->
-<script src="../bower_components/metisMenu/dist/metisMenu.min.js"></script>
+<script src="../bower_components/jquery-slimscroll/jquery.slimscroll.min.js"></script>
+<!-- FastClick -->
+<script src="../bower_components/fastclick/lib/fastclick.js"></script>
+
+<script src="../dist/js/adminlte.min.js"></script>
+<script src="../dist/js/demo.js"></script>
 
 <!-- DataTables JavaScript -->
 <script src="../bower_components/datatables/media/js/jquery.dataTables.min.js"></script>
 <script src="../bower_components/datatables-plugins/integration/bootstrap/3/dataTables.bootstrap.min.js"></script>
-
-<!-- Custom Theme JavaScript -->
-<script src="../dist/js/sb-admin-2.js"></script>
-<script src="../js/jquery.cookie.js"></script>
 <!-- Page-Level Demo Scripts - Tables - Use for reference -->
+
 <script src="../js/querystringparser.js"></script>
+<script src="../bower_components/jquery-sparkline/dist/jquery.sparkline.min.js"></script>
+
+<script src="../bower_components/pnotify/pnotify.buttons.js"></script>
+<script src="../bower_components/pnotify/pnotify.core.js"></script>
+<script src="../bower_components/pnotify/pnotify.nonblock.js"></script>
 
 <!-- Custom scripts to load in HTML -->
-<script src="../js/navbar.js"></script>
-<script>
-    $(function(){
-        $("#login-modal-include").load("loginmodal.html");
-    });
-</script>
 
-<script>
-    /*
-     * These cookies are set on the login page at login.html.
-     * They are simply the IP address of your controller and the REST api port.
-     * */
-    var ipaddress = $.cookie('cip');
-    if (ipaddress == null || ipaddress == "") window.location.href = "login.html";
-    var restport = $.cookie('cport');
-    if (restport == null || restport == "") window.location.href = "login.html";
+
+
+<script type="text/javascript">
+
+    $('.sidebar-menu').tree();
+$("#links").addClass("active");
+  var hostWithProt=window.location.host;
+
+    var restport="8080";//window.location.port;
+
+    var ipaddress = "192.168.2.5";//hostWithProt.replace(':'+restport,"");
+
+
+document.getElementById("home-button-title").innerHTML =  hostWithProt;
+
+   function Link(srcs,srcp,dsts,dstp)
+	{
+	this.srcs=srcs;
+	this.srcp=srcp;
+	this.dsts=dsts;
+	this.dstp=dstp;
+	}
+	
+	function cmpLink(l1,l2){
+		if(l1.srcs == l2.srcs && l1.srcp==l2.srcp && l1.dsts == l2.dsts&& l1.dstp ==l2.dstp){
+			return true;
+		}else if(l1.srcs == l2.dsts && l1.srcp == l2.dstp && l1.dsts == l2.srcs && l1.dstp == l2.srcp){
+			return true;
+		}else{
+			return false;
+		}
+	};
+	
+var ll = new Link();
+var m = new Map();
+var odd = "odd";
+function addRow(direction,srcs,srcp,dsts,dstp,type,id,la,lu,ll,ls){
+
+    var s = '<tr role="row" class='+odd+ '><td>'+ direction+'</td><td>'+ srcp+'</td><td class="sorting_1">'+ srcs+'</td><td>'+ dstp+'</td><td class="sorting_2">'+ dsts+'</td><td>'+ type+'</td><td id="la'+id+'">'+ la+'</td><td id="u'+ id+'">'+lu+'</td><td id="l'+ id+'">'+ll+'</td><td id="s'+ id+'">'+ls+'</td><td><span  id="w'+id+'">Loading..</span></p></td>></tr>';
+	$('#il').append(s);
+	if(odd == "odd"){
+		odd = "even";
+	}else{
+		odd = "odd";
+	}
+};
+
+var flag = 0; //0: lusag  1: lspeed 2: llatency 3: lloss
+
+var links;
+var lusage;
+var lloss;
+var lspeed;
+var llatency;
+
+var b = new Array(false,false,false,false);
+
+var mm = new Map();
+var stack_topleft = {"dir1": "up", "dir2": "left"};
+//loadInternalLinks();
+reloadTable();
+ function loadMyInternalLinks() {
+        $.ajax({
+            url: "http://" + ipaddress + ":" + restport + "/wm/topology/links/json",
+            success: function (data) {
+            document.getElementById("tableInternalLinks_info").innerHTML= "Showing "+data.length+" entries";
+                links = data;
+                loadLinkUsage();
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                 new PNotify({
+                        title: 'Get  Link  Data error!',
+                        text: 'Get  Link  Data error!',
+                        type: 'error',
+                        hide: true,
+                        delay: 500,
+                        addclass: "stack-bottomright",
+                        stack: stack_topleft
+                    });
+            }
+        });
+    };
+
+ 
+	function loadAllStatus(){
+	 	var direction;
+	 	var srcs; 
+	 	var srcp;
+	 	var dsts;
+	 	var dstp;
+	 	var type;
+	 	var id;
+	 	var la; 
+	 	var lu;
+	 	var ll;
+	 	var ls;
+		if(flag == 0){//lu
+			var data = lusage;
+			for(var i = 0; i < data.length; i++){
+				var l = new Link(data[i]["link"]["src-switch"],data[i]["link"]["src-port"],data[i]["link"]["dst-switch"],data[i]["link"]["dst-port"]);
+				 srcs = l.srcs;
+				 srcp = l.srcp;
+				 dsts = l.dsts;
+				 dstp = l.dstp;
+				 id = i;
+				 lu = data[i]["linkUsage"];
+				 la = getDelay(l);
+				 ll = getLoss(l);
+				 type = getType(l);
+				 direction = getDirection(l);
+				 ls = getSpeed(l);
+				 addRow(direction,srcs,srcp,dsts,dstp,type,id,la,lu,ll,ls);
+				 m.set(l,i+"");
+				 mm.set(l,[]);
+				 mm.get(l).push(ls);
+			}
+		}else if(flag == 1){
+			var data = lspeed;
+			for(var i = 0; i < data.length; i++){
+				var l = new Link(data[i]["link"]["src-switch"],data[i]["link"]["src-port"],data[i]["link"]["dst-switch"],data[i]["link"]["dst-port"]);
+				 srcs = l.srcs;
+				 srcp = l.srcp;
+				 dsts = l.dsts;
+				 dstp = l.dstp;
+				 id = i;
+				 lu = getUsage(l);
+				 la = getDelay(l);
+				 ll = getLoss(l);
+				 type = getType(l);
+				  direction = getDirection(l);
+				 ls = data[i]["linkSpeed"];
+				 addRow(direction,srcs,srcp,dsts,dstp,type,id,la,lu,ll,ls);
+				 m.set(l,i+"");
+				 mm.set(l,[]);
+				 mm.get(l).push(ls);
+			}
+		}else if(flag == 2){
+			var data = llatency;
+			for(var i = 0; i < data.length; i++){
+				var l = new Link(data[i]["link"]["src-switch"],data[i]["link"]["src-port"],data[i]["link"]["dst-switch"],data[i]["link"]["dst-port"]);
+				 srcs = l.srcs;
+				 srcp = l.srcp;
+				 dsts = l.dsts;
+				 dstp = l.dstp;
+				 id = i;
+				 lu = getUsage(l);
+				 la = data[i]["linkDelay"];
+				 ll = getLoss(l);
+				 type = getType(l);
+				 direction = getDirection(l);
+				 ls = getSpeed(l);
+				 addRow(direction,srcs,srcp,dsts,dstp,type,id,la,lu,ll,ls);
+				 m.set(l,i+"");
+				 mm.set(l,[]);
+				 mm.get(l).push(ls);
+			}
+		}else if(flag == 3){
+			var data = lloss;
+			for(var i = 0; i < data.length; i++){
+				var l = new Link(data[i]["link"]["src-switch"],data[i]["link"]["src-port"],data[i]["link"]["dst-switch"],data[i]["link"]["dst-port"]);
+				 srcs = l.srcs;
+				 srcp = l.srcp;
+				 dsts = l.dsts;
+				 dstp = l.dstp;
+				 id = i;
+				 lu = getUsage(l);
+				 la = getDelay(l);
+				 ll = data[i]["linkLoss"];
+				 type = getType(l);
+				 direction = getDirection(l);
+				 ls = getSpeed(l);
+				 addRow(direction,srcs,srcp,dsts,dstp,type,id,la,lu,ll,ls);
+				 m.set(l,i+"");
+				 mm.set(l,[]);
+				 mm.get(l).push(ls);
+			}
+		}
+		
+		
+	};
+
+function getType(l){
+		for(var j = 0; j < links.length ; j++){
+			var ll = new Link(links[j]["src-switch"],links[j]["src-port"],links[j]["dst-switch"],links[j]["dst-port"]);			 	
+			if(cmpLink(ll,l)){
+			direction = links[j]["direction"];
+			return links[j]["type"];
+			break;
+			}
+		}	
+}
+function getDirection(l){
+		for(var j = 0; j < links.length ; j++){
+			var ll = new Link(links[j]["src-switch"],links[j]["src-port"],links[j]["dst-switch"],links[j]["dst-port"]);			 	
+			if(cmpLink(ll,l)){
+			 return links[j]["direction"];
+			break;
+			}
+		}	
+}
+
+function getDelay(l){
+					 for(var j =0; j < llatency.length;j++){
+				 	var ll = new Link(llatency[j]["link"]["src-switch"],llatency[j]["link"]["src-port"],llatency[j]["link"]["dst-switch"],llatency[j]["link"]["dst-port"]);
+			 
+				 	if(cmpLink(ll,l)){
+				 		return llatency[j]["linkDelay"];
+				 		break;
+				 	}
+				 }
+}
+
+
+
+function getLoss(l){
+	for(var j =0; j < lloss.length;j++){
+		var ll = new Link(lloss[j]["link"]["src-switch"],lloss[j]["link"]["src-port"],lloss[j]["link"]["dst-switch"],lloss[j]["link"]["dst-port"]);
+			 
+				if(cmpLink(ll,l)){
+				 		return lloss[j]["linkLoss"];
+				 		break;
+			}
+	}	
+}
+
+function getUsage(l){
+	for(var j =0; j < lusage.length;j++){
+		var ll = new Link(lusage[j]["link"]["src-switch"],lusage[j]["link"]["src-port"],lusage[j]["link"]["dst-switch"],lusage[j]["link"]["dst-port"]);
+			 
+				if(cmpLink(ll,l)){
+				 		return lusage[j]["linkUsage"];
+				 		break;
+			}
+	}	
+}
+
+function getSpeed(l){
+	for(var j =0; j < lspeed.length;j++){
+		var ll = new Link(lspeed[j]["link"]["src-switch"],lspeed[j]["link"]["src-port"],lspeed[j]["link"]["dst-switch"],lspeed[j]["link"]["dst-port"]);
+			 
+				if(cmpLink(ll,l)){
+				 		return lspeed[j]["linkSpeed"];
+				 		break;
+			}
+	}	
+}
+
+//0: lusag  1: lspeed 2: llatency 3: lloss
+ function loadLinkUsage(){
+        //alert("linkUsage");
+        var str = "";
+        if(b[0]){
+        	str = "/tank/moitor/bandwidthmoitor/json/DescendNoDirectLinkUsage";
+        }else{
+        	str = "/tank/moitor/bandwidthmoitor/json/AscendNoDirectLinkUsage";
+        }
+        $.ajax({
+            url: "http://" + ipaddress + ":" + restport + str,
+            success: function (data) {
+            	lusage = data;
+            	loadLinkLoss();
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                new PNotify({
+                        title: 'Get  Link Usage  Data error!',
+                        text: 'Get  Link Usage  Data error!',
+                        type: 'error',
+                        hide: true,
+                        delay: 500,
+                        addclass: "stack-bottomright",
+                        stack: stack_topleft
+                    });
+            }
+        });
+    };
+    
+     function loadLinkLoss(){
+        //alert("linkUsage");
+        var str = "";
+        if(b[3]){
+        	str = "/tank/moitor/lossmoitor/json/DescendNoDirectLinkLoss";
+        }else{
+        	str = "/tank/moitor/lossmoitor/json/AscendNoDirectLinkLoss";
+        }
+        $.ajax({
+            url: "http://" + ipaddress + ":" + restport + str,
+            success: function (data) {
+            	lloss = data;
+            	loadLinkLatency();
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                new PNotify({
+                        title: 'Get  Link Loss  Data error!',
+                        text: 'Get  Link Loss  Data error!',
+                        type: 'error',
+                        hide: true,
+                        delay: 500,
+                        addclass: "stack-bottomright",
+                        stack: stack_topleft
+                    });
+            }
+        });
+    };
+    
+         function loadLinkLatency(){
+        var str = "";
+        if(b[2]){
+        	str = "/tank/moitor/delaymoitor/json/DescendNoDirectLinkDelay";
+        }else{
+        	str = "/tank/moitor/delaymoitor/json/AscendNoDirectLinkDelay";
+        }
+        $.ajax({
+            url: "http://" + ipaddress + ":" + restport + str,
+            success: function (data) {
+            	llatency = data;
+            	loadLinkSpeed();
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                           new PNotify({
+                        title: 'Get  Link Latency  Data error!',
+                        text: 'Get  Link Latency  Data error!',
+                        type: 'error',
+                        hide: true,
+                        delay: 500,
+                        addclass: "stack-bottomright",
+                        stack: stack_topleft
+                    });
+            }
+        });
+    };
+
+     function loadLinkSpeed(){
+                var str = "";
+        if(b[1]){
+        	str = "/tank/moitor/bandwidthmoitor/json/DescendNoDirectLinkSpeed";
+        }else{
+        	str = "/tank/moitor/bandwidthmoitor/json/AscendNoDirectLinkSpeed";
+        }
+        $.ajax({
+            url: "http://" + ipaddress + ":" + restport + str,
+            success: function (data) {
+            	lspeed = data;
+            	loadAllStatus();
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                 new PNotify({
+                        title: 'Get  Link Speed  Data error!',
+                        text: 'Get  Link Speed  Data error!',
+                        type: 'error',
+                        hide: true,
+                        delay: 500,
+                        addclass: "stack-bottomright",
+                        stack: stack_topleft
+                    });
+            }
+        });
+    };
+
+	function reloadTable(){
+		clearTable();
+		loadMyInternalLinks();	
+	}
+
+	function clearTable(){
+		$("#il").empty();
+		m.clear();
+		mm.clear();
+	}
 
     $(document).ready(function () {
-        loadInternalLinks();
-        loadExternalLinks();
+        //loadInternalLinks();
+		loadExternalLinks();
 
-        startRefresh();
+        //startRefresh();
+        $("#refresh").click(function(){
+        	reloadTable();
+        });
+        
+        $(".cli").click(function(){
+         	flag = parseInt($(this).attr("id"));
+        	 //alert(flag);
+        	 reloadTable();
+        	 if(b[flag]){
+         	 	$(this).children().removeClass();
+				$(this).children().addClass("fa fa-sort-amount-asc mya");
+				b[flag] = !b[flag];
+        	 } else{
+				$(this).children().removeClass();
+				$(this).children().addClass("fa fa-sort-amount-desc mya");
+				b[flag] = !b[flag];
+        	 }
+        });
+        
+        window.setInterval(LoadAll, 1000);
+        window.setInterval(mdraw, 500);
     });
 
     /*
@@ -204,9 +625,9 @@
     }
 
     /*
-    * This function loads all the internal links that the controller sees.
-    * An internal link is defined as a link that LLDP can travel across.
-    **/
+     * This function loads all the internal links that the controller sees.
+     * An internal link is defined as a link that LLDP can travel across.
+     **/
     function loadInternalLinks() {
         internalLinkTable = $('#tableInternalLinks').DataTable({
             responsive: true,
@@ -214,28 +635,7 @@
             lengthChange: false,
             scrollX: true,
             paging: false,
-            order: [[ 2, 'asc' ], [ 4, 'asc' ]],
-            ajax      : {
-                url    : "http://" + ipaddress + ":" + restport + "/wm/topology/links/json",
-                dataSrc: ''
-            },
-            columns   : [
-                {data: 'direction'},
-                {data: 'src-port'},
-                {data: 'src-switch'},
-                {data: 'dst-port'},
-                {data: 'dst-switch'},
-//                {data: 'latency'},
-                {data: 'type'}
-
-            ]
-        });
-
-        $.ajax({
-            url    : "http://" + ipaddress + ":" + restport + "/wm/topology/links/json",
-            success: function (links) {
-                console.log(links);
-            }
+            order: [[ 2, 'desc' ]]
         });
     }
 
@@ -275,7 +675,141 @@
         });
     }
 
+ function LoadAll(){
+	$.ajax({
+            url: "http://" + ipaddress + ":" + restport + "/tank/moitor/bandwidthmoitor/json/AllNoDirectLinkSpeed",
+            success: function (data) {
+             	for(var j = 0 ; j < data.length ; j++){
+             		var l = new Link(data[j]["link"]["src-switch"],data[j]["link"]["src-port"],data[j]["link"]["dst-switch"],data[j]["link"]["dst-port"]);
+             		m.forEach(function(item,key,mapobj){
+             			if(cmpLink(l,key)){
+             				$("#s"+item).text(data[j]["linkSpeed"]);
+             				
+             			}
+             		});
+             		
+             		mm.forEach(function(item,key,mapobj){
+             			if(cmpLink(l,key)){
+             				item.push(data[j]["linkSpeed"]);
+             			}
+             		});
+             	}
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                                 new PNotify({
+                        title: 'Get  Link Speed  Data error!',
+                        text: 'Get  Link Speed  Data error!',
+                        type: 'error',
+                        hide: true,
+                        delay: 500,
+                        addclass: "stack-bottomright",
+                        stack: stack_topleft
+                    });
+            }
+        });
+  
+  
+  $.ajax({
+            url: "http://" + ipaddress + ":" + restport + "/tank/moitor/bandwidthmoitor/json/AllNoDirectLinkUsage",
+            success: function (data) {
+             	for(var j = 0 ; j < data.length ; j++){
+             		var l = new Link(data[j]["link"]["src-switch"],data[j]["link"]["src-port"],data[j]["link"]["dst-switch"],data[j]["link"]["dst-port"]);
+             		m.forEach(function(item,key,mapobj){
+             			if(cmpLink(l,key)){
+             				$("#u"+item).text(data[j]["linkUsage"]);
+             				
+             			}
+             		});
+             	}
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                new PNotify({
+                        title: 'Get  Link Usage  Data error!',
+                        text: 'Get  Link Usage  Data error!',
+                        type: 'error',
+                        hide: true,
+                        delay: 500,
+                        addclass: "stack-bottomright",
+                        stack: stack_topleft
+                    });
+            }
+        });
+        
+        
+        $.ajax({
+            url: "http://" + ipaddress + ":" + restport + "/tank/moitor/delaymoitor/json/AllNoDirectLinkDelay",
+            success: function (data) {
+             	for(var j = 0 ; j < data.length ; j++){
+             		var l = new Link(data[j]["link"]["src-switch"],data[j]["link"]["src-port"],data[j]["link"]["dst-switch"],data[j]["link"]["dst-port"]);
+             		m.forEach(function(item,key,mapobj){
+             			if(cmpLink(l,key)){
+             				$("#la"+item).text(data[j]["linkDelay"]);
+             				
+             			}
+             		});
+             	}
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                new PNotify({
+                        title: 'Get  Link Latency  Data error!',
+                        text: 'Get  Link Latency  Data error!',
+                        type: 'error',
+                        hide: true,
+                        delay: 500,
+                        addclass: "stack-bottomright",
+                        stack: stack_topleft
+                    });
+            }
+        });
+        
+                $.ajax({
+            url: "http://" + ipaddress + ":" + restport + "/tank/moitor/lossmoitor/json/AllNoDirectLinkLoss",
+            success: function (data) {
+             	for(var j = 0 ; j < data.length ; j++){
+             		var l = new Link(data[j]["link"]["src-switch"],data[j]["link"]["src-port"],data[j]["link"]["dst-switch"],data[j]["link"]["dst-port"]);
+             		m.forEach(function(item,key,mapobj){
+             			if(cmpLink(l,key)){
+             				$("#l"+item).text(data[j]["linkLoss"]);
+             				
+             			}
+             		});
+             	}
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                new PNotify({
+                        title: 'Get  Link Loss  Data error!',
+                        text: 'Get  Link Loss  Data error!',
+                        type: 'error',
+                        hide: true,
+                        delay: 500,
+                        addclass: "stack-bottomright",
+                        stack: stack_topleft
+                    });
+            }
+        });
+ };
+
+
+
+  /**
+   ** Draw the little mouse speed animated graph
+   ** This just attaches a handler to the mousemove event to see
+   ** (roughly) how far the mouse has moved
+   ** and then updates the display a couple of times a second via
+   ** setTimeout()
+   **/
+
+	var maxLen = 60;
+    var mdraw = function () {
+    	m.forEach(function(item,key,mapobj){
+    		if(mm.get(key).length > maxLen)mm.get(key).splice(0,1);
+    		$('#w'+item).sparkline(mm.get(key), {width: mm.get(key).length*2, tooltipSuffix: ' kbps'});
+    	});
+    };
+
+
 </script>
 
 </body>
+
 </html>

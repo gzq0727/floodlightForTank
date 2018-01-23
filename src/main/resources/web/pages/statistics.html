@@ -152,10 +152,11 @@
 </script>
 
 <script>
-    var ipaddress = $.cookie('cip');
-    if (ipaddress == null || ipaddress == "") window.location.href = "login.html";
-    var restport = $.cookie('cport');
-    if (restport == null || restport == "") window.location.href = "login.html";
+	var hostWithProt=window.location.host;
+	 
+	var restport=window.location.port;
+	 
+	var ipaddress = hostWithProt.replace(':'+restport,"");
 
     $("#btnChange").click(function () {
 
